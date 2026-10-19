@@ -1,0 +1,2139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Delay-and-Sum Signal Model</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<style>
+:root {
+  --bg: #f3f5f6;
+  --surface: #ffffff;
+  --ink: #1c2226;
+  --muted: #59626a;
+  --line: #d6dce0;
+  --accent: #a80050;
+  --accent-2: #0080a3;
+  --ok: #00805a;
+  --no: #c2185b; --chip-ok-bg: #e2f3ec; --chip-no-bg: #fbe4ee; --fan: rgba(0, 128, 163, 0.14); --nf: rgba(168, 0, 80, 0.07);
+  --t1: #c2185b;
+  --t2: #0a86ab;
+  --t3: #0f8f62;
+  --t4: #d9700f;
+  --t5: #7b5ea7;
+  --img-bg: #0b1620;
+  --box-bg: #fbf3f7;
+  --font-display: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #111518; --surface: #192025; --ink: #e6eaec; --muted: #9ba5ad; --line: #2c353c;
+    --accent: #e2589a; --accent-2: #45b5d8; --ok: #4cc79a;
+    --t1: #f06a9e; --t2: #45b5d8; --t3: #4cc79a; --t4: #f2a24e; --t5: #b39ddb;
+    --box-bg: #241a20;
+--no: #f06a9e; --chip-ok-bg: #173a2e; --chip-no-bg: #3e1a2a; --fan: rgba(69, 181, 216, 0.16); --nf: rgba(226, 88, 154, 0.11);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #111518; --surface: #192025; --ink: #e6eaec; --muted: #9ba5ad; --line: #2c353c;
+  --accent: #e2589a; --accent-2: #45b5d8; --ok: #4cc79a;
+  --t1: #f06a9e; --t2: #45b5d8; --t3: #4cc79a; --t4: #f2a24e; --t5: #b39ddb;
+  --box-bg: #241a20;
+--no: #f06a9e; --chip-ok-bg: #173a2e; --chip-no-bg: #3e1a2a; --fan: rgba(69, 181, 216, 0.16); --nf: rgba(226, 88, 154, 0.11);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; padding-inline: 16px; padding-block: 24px 56px; }
+.wrap { max-width: 960px; margin-inline: auto; display: grid; gap: 38px; }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(32px, 4.6vw, 48px); line-height: 1.02; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--font-display); font-weight: 600; font-size: clamp(23px, 3vw, 29px); line-height: 1.1; margin: 0; text-wrap: balance; }
+h3 { font-family: var(--font-display); font-weight: 600; font-size: 21px; margin: 0; }
+p { margin: 0; }
+.hero, .step { display: grid; gap: 12px; min-width: 0; }
+.sub, .cap { color: var(--muted); }
+.step-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.step-no { font: 500 12px var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); white-space: nowrap; }
+.part { font: 600 13px var(--font-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-2); border-top: 2px solid var(--accent-2); padding-top: 8px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: grid; gap: 14px; min-width: 0; }
+canvas { display: block; width: 100%; border-radius: 4px; touch-action: none; }
+.eq { overflow-x: auto; overflow-y: hidden; padding: 4px 2px; font-size: 17px; text-align: center; }
+.eq .katex-display { margin: 0.2em 0; }
+@media (max-width: 600px) { .eq { font-size: 14px; } }
+.syms { display: flex; flex-wrap: wrap; gap: 6px 8px; }
+.sym { display: inline-block; font-size: 13px; color: var(--muted); background: var(--bg); border: 1px solid var(--line); border-left-width: 4px; border-radius: 4px; padding: 2px 8px; }
+.sym b { font-family: var(--font-mono); font-weight: 500; color: var(--ink); margin-right: 6px; }
+.sym.c1 { border-left-color: var(--t1); } .sym.c2 { border-left-color: var(--t2); } .sym.c3 { border-left-color: var(--t3); } .sym.c4 { border-left-color: var(--t4); } .sym.c5 { border-left-color: var(--t5); }
+.tag { display: inline-block; font: 500 12px var(--font-mono); padding: 2px 8px; border-radius: 99px; background: var(--box-bg); color: var(--accent); border: 1px solid var(--accent); }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.bul { margin: 0; padding-left: 20px; display: grid; gap: 8px; font-size: 16px; }
+.bul b { color: var(--ink); }
+.cols2 { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
+@media (max-width: 700px) { .cols2 { grid-template-columns: 1fr; } }
+.opgrid { display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-areas: "a . b" "a c b" "d c e" "d f e"; gap: 12px; align-items: center; }
+.opgrid .op { border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 6px; background: var(--bg); padding: 10px 12px; font-size: 14px; color: var(--muted); }
+.opgrid .op b { display: block; color: var(--ink); font-size: 15px; }
+.opgrid .centre { grid-area: c; text-align: center; font: 600 20px var(--font-display); color: #fff; background: var(--accent); border-radius: 8px; padding: 16px 10px; }
+@media (max-width: 700px) { .opgrid { grid-template-columns: 1fr; grid-template-areas: "c" "a" "b" "d" "e" "f"; } }
+table.cmp td, table.cmp th { font-size: 14px; }
+.formula { font-family: var(--font-mono); font-size: 13px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 99px; padding: 3px 10px; white-space: nowrap; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chip { display: inline-block; font: 500 12px var(--font-mono); padding: 2px 8px; border-radius: 99px; }
+.chip.ok { background: var(--chip-ok-bg); color: var(--ok); }
+.chip.no { background: var(--chip-no-bg); color: var(--no); }
+.pubfig { margin: 14px auto 0; max-width: 560px; } .pubgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; } .pubgrid .pubfig { margin: 0; } .pubfig img { display: block; width: 100%; height: auto; background: #fff; border-radius: 4px; } .pubfig figcaption { font-size: 13px; color: var(--muted); margin-top: 6px; }
+.controls { display: flex; flex-wrap: wrap; gap: 12px 22px; align-items: end; }
+.ctl { display: grid; gap: 4px; flex: 1 1 200px; min-width: 0; }
+.ctl label { font-size: 13px; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+.ctl label output { font-family: var(--font-mono); color: var(--ink); font-variant-numeric: tabular-nums; }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+.btnrow { display: flex; flex-wrap: wrap; gap: 8px; }
+button { font: 500 13px var(--font-body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 7px 12px; cursor: pointer; }
+button:hover { border-color: var(--accent-2); }
+button:disabled, select:disabled { opacity: 0.4; cursor: default; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+button[aria-pressed="true"] { background: var(--accent-2); border-color: var(--accent-2); color: #fff; }
+.readouts { display: flex; flex-wrap: wrap; gap: 8px 26px; }
+.ro { display: grid; gap: 1px; }
+.ro .k { font-size: 12px; color: var(--muted); }
+.ro .v { font-family: var(--font-mono); font-size: 15px; font-variant-numeric: tabular-nums; }
+.keybox { background: var(--box-bg); border: 1px solid var(--accent); border-radius: 8px; padding: 16px; display: grid; gap: 12px; }
+.hist { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 14px; color: var(--muted); } .hist b { color: var(--ink); font-weight: 600; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: grid; gap: 6px; align-content: start; }
+.card svg { width: 100%; height: 70px; }
+.card .where { font: 500 12px var(--font-mono); color: var(--accent-2); }
+.card p { font-size: 14px; }
+.card .found { color: var(--muted); font-size: 13px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: 13px; }
+td:first-child { white-space: nowrap; }
+.tablewrap { overflow-x: auto; }
+.foot { font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; display: grid; gap: 6px; }
+.flow { width: 100%; height: auto; }
+.pager { position: sticky; bottom: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; box-shadow: 0 -4px 14px rgba(0,0,0,0.08); }
+.wrap > * { min-width: 0; }
+body.present { padding-block: 18px 18px; }
+body.present .pager { position: fixed; left: 50%; transform: translateX(-50%); bottom: 10px; width: min(900px, 92vw); transition: opacity 0.3s; }
+body.present.idle .pager { opacity: 0; pointer-events: none; }
+/* laser pointer over the content in present mode; the step bar keeps the normal cursor */
+body.present .wrap, body.present .wrap * { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Ccircle cx='14' cy='14' r='12' fill='rgba(255,30,30,0.25)'/%3E%3Ccircle cx='14' cy='14' r='6' fill='%23ff1a1a' stroke='%23ffffff' stroke-width='1'/%3E%3C/svg%3E") 14 14, crosshair; }
+body.present .pager, body.present .pager * { cursor: auto; }
+body.present .pager button, body.present .pager select { cursor: pointer; }
+.pager select { flex: 1 1 160px; width: 0; min-width: 0; font: 500 13px var(--font-body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 5px; padding: 7px 8px; }
+.pager .count { font: 500 12px var(--font-mono); color: var(--muted); white-space: nowrap; }
+.pager .spacer { flex: 1 1 0; }
+.paged [data-page][hidden] { display: none; }
+.dsgrid { display: grid; grid-template-columns: max-content minmax(0, 1fr) minmax(0, 1fr); gap: 8px 10px; align-items: stretch; }
+.dsgrid .colh { font: 500 12px var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); align-self: end; }
+.dsgrid .rowh { font-size: 14px; font-weight: 600; color: var(--muted); align-self: center; padding-right: 4px; }
+.dscell { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-size: 14px; display: flex; flex-wrap: wrap; align-content: flex-start; align-items: center; gap: 6px 6px; min-width: 0; }
+.dscell.span2 { grid-column: 2 / 4; }
+.dscell .clab { display: none; }
+.dscell .meth { display: inline-block; }
+.dscell .sep { color: var(--muted); margin-left: -6px; }
+.dscell .dom { flex-basis: 100%; font-size: 12px; color: var(--muted); }
+.dscell button.meth { font: 500 14px var(--font-body); color: var(--ink); background: var(--box-bg); border: 1px solid var(--accent-2); border-radius: 5px; padding: 2px 8px; cursor: pointer; }
+.dscell button.meth:hover { background: var(--accent-2); color: #fff; }
+.dscell button.meth:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+@media (max-width: 599px) {
+  .dsgrid { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .dsgrid .colh, .dsgrid .corner { display: none; }
+  .dsgrid .rowh { margin-top: 8px; }
+  .dscell.span2 { grid-column: auto; }
+  .dscell .clab { display: block; flex-basis: 100%; font: 500 11px var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <section class="hero sar" aria-labelledby="sar_title">
+    <h1 id="sar_title">From antenna aperture to synthetic aperture radar</h1>
+    <div class="panel">
+      <canvas id="sar_c0" aria-label="Animated oblique view: a satellite antenna of length D and height W flies along its track, and its beam lights a ground patch R lambda over D long along the track and R lambda over W wide across it"></canvas>
+    </div>
+    <p class="sub">A radar antenna of length D and height W lights a patch of ground. The patch is narrow along the flight direction, about R&lambda;/D, and wide across it, about R&lambda;/W. The following slides follow the along-track direction, where synthetic aperture radar improves the resolution.</p>
+  </section>
+
+  <!-- Step 1 -->
+  <section class="step" aria-labelledby="sar_s1">
+    <div class="step-head"><span class="step-no">Step 1</span><h2 id="sar_s1">A real antenna</h2><span class="formula">&delta; &asymp; R&lambda;/D</span></div>
+    <p class="cap">The beam is about &lambda;/D wide. Two targets inside the same footprint return their echoes together, so the footprint is the real-aperture resolution.</p>
+    <div class="panel">
+      <canvas id="sar_c1" aria-label="Beam of a real-aperture antenna above two ground targets, and the received response across the ground"></canvas>
+      <div class="controls">
+        <div class="ctl"><label for="sar_s1D">Antenna length D <output id="sar_o1D"></output></label><input id="sar_s1D" type="range" min="0" max="1000" value="500"></div>
+        <div class="ctl"><label for="sar_s1R">Range R <output id="sar_o1R"></output></label><input id="sar_s1R" type="range" min="0" max="1000" value="600"></div>
+        <div class="ctl"><label for="sar_s1x">Target separation <output id="sar_o1x"></output></label><input id="sar_s1x" type="range" min="0" max="1000" value="500"></div>
+      </div>
+      <div class="controls">
+        <div class="btnrow" role="group" aria-label="Radar band">
+          <button id="sar_b1L" type="button" aria-pressed="false">L band, 23.5 cm</button>
+          <button id="sar_b1C" type="button" aria-pressed="false">C band, 5.6 cm</button>
+          <button id="sar_b1X" type="button" aria-pressed="true">X band, 3.1 cm</button>
+        </div>
+        <div class="btnrow">
+          <button id="sar_p1sat" type="button">Satellite: D = 10 m, R = 800 km, 1 m apart</button>
+          <button id="sar_p1far" type="button">Satellite, 4 km apart</button>
+        </div>
+      </div>
+      <div class="readouts">
+        <div class="ro"><span class="k">Beamwidth &lambda;/D</span><span class="v" id="sar_r1th"></span></div>
+        <div class="ro"><span class="k">Footprint</span><span class="v" id="sar_r1fp"></span></div>
+        <div class="ro"><span class="k">Far field beyond 2D&sup2;/&lambda;</span><span class="v" id="sar_r1nf"></span></div>
+        <div class="ro"><span class="k">Antenna needed for 1 m</span><span class="v" id="sar_r1need"></span></div>
+        <div class="ro"><span class="k">The two targets are</span><span class="v"><span id="sar_r1res" class="chip"></span></span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Step 2 -->
+  <section class="step" aria-labelledby="sar_s2">
+    <div class="step-head"><span class="step-no">Step 2</span><h2 id="sar_s2">The antenna moves</h2><span class="formula">L &asymp; R&lambda;/D</span></div>
+    <p class="cap">The same antenna, range and targets, now moving along the track. Each target returns an echo while it is in the beam (blue), and the radar records their sum (red). A target stays in the beam over one footprint of track: the synthetic aperture L.</p>
+    <div class="panel">
+      <canvas id="sar_c2a" aria-label="Antenna moving along the track over targets A and B, with the echo strength of each target and their sum drawn against antenna position"></canvas>
+      <div class="controls">
+        <div class="ctl"><label>Animation</label><div class="btnrow"><button id="sar_b2play" type="button" class="primary">Pause</button><button id="sar_b2step" type="button">Restart pass</button></div></div>
+      </div>
+      <div class="readouts">
+        <div class="ro"><span class="k">Synthetic aperture L</span><span class="v" id="sar_r2L"></span></div>
+        <div class="ro"><span class="k">D, &lambda;, R</span><span class="v" id="sar_r2set"></span></div>
+      </div>
+    </div>
+  </section>
+
+
+  <section class="hero" aria-labelledby="title">
+    <h1 id="title">The signal model behind delay-and-sum beamforming</h1>
+    <div class="panel">
+      <canvas id="c0" aria-label="Animated cross-section of a breast surrounded by a ring of antennas. One antenna at a time sends a pulse; the wavefront spreads, reaches a tumour, and a weaker echo returns to the antenna, which records it as a time signal."></canvas>
+    </div>
+    <p class="sub">Each antenna sends a short pulse and records the echoes. Part A derives, from the wave equation, how the recorded echoes depend on the scatterers, and how inverting that relation gives the delay-and-sum (DAS) image. Part B shows which assumptions the derivation makes and how weighting factors, MIST and robust Capon beamforming (RCB) compensate for them. The derivation follows Curtis, Lavoie and Fear (2017).</p>
+  </section>
+
+  <p class="part">Part A. From the wave equation to the DAS equation</p>
+
+  <!-- Step 1 -->
+  <section class="step" aria-labelledby="s1">
+    <div class="step-head"><span class="step-no">Step 1</span><h2 id="s1">Wave speed, wavelength and wavenumber</h2></div>
+    <p class="cap">A material with a higher relative permittivity slows the wave, so the same frequency has a shorter wavelength in it. The clocks show the phase at points 5 mm apart: every hand turns at the same rate f, each one lags its neighbour by a fixed angle, and k is that lag per metre. Drag the marker to read the phase lag kR accumulated over a distance R from the source.</p>
+    <div class="panel">
+      <canvas id="c1b" aria-label="A row of clock hands at points 5 mm apart in the medium, all rotating at the same rate, each lagging its neighbour; below them the wave they form; a draggable marker and a dial showing the phase lag k R accumulated between the source and the marker"></canvas>
+      <canvas id="c1" aria-label="A single-frequency wave in vacuum and in a material of chosen permittivity, with the wavelength marked in each"></canvas>
+      <div class="controls">
+        <div class="ctl"><label for="s1e"><span>Relative permittivity &epsilon;<sub>r</sub></span> <output id="o1e"></output></label><input id="s1e" type="range" min="1" max="50" step="0.5" value="9"></div>
+        <div class="ctl"><label for="s1f"><span>Frequency f</span> <output id="o1f"></output></label><input id="s1f" type="range" min="1" max="12" step="0.5" value="4"></div>
+      </div>
+      <div class="readouts" id="r1"></div>
+      <div class="eq" data-tex="\textcolor{#0a86ab}{c}=\frac{c_0}{\sqrt{\textcolor{#7b5ea7}{\varepsilon_r}}},\qquad \textcolor{#0f8f62}{\lambda}=\frac{\textcolor{#0a86ab}{c}}{f},\qquad \textcolor{#c2185b}{k}=\frac{2\pi f}{\textcolor{#0a86ab}{c}}=\frac{2\pi}{\textcolor{#0f8f62}{\lambda}}"></div>
+      <div class="syms">
+        <span class="sym c5"><b>&epsilon;<sub>r</sub></b><span>relative permittivity of the medium (1 for vacuum)</span></span>
+        <span class="sym c2"><b>c</b>wave speed in the medium; c<sub>0</sub> = 3&times;10<sup>8</sup> m/s in vacuum</span>
+        <span class="sym c3"><b>&lambda;</b><span>wavelength, the distance between crests</span></span>
+        <span class="sym c1"><b>k</b>wavenumber, the phase change per metre (rad/m)</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Step 2 -->
+  <section class="step" aria-labelledby="s2">
+    <div class="step-head"><span class="step-no">Step 2</span><h2 id="s2">A short pulse contains a band of frequencies</h2></div>
+    <p class="cap">The pulse p(t) is a sum of sinusoids. Its spectrum P(f) gives the amplitude and phase of each one; a shorter pulse needs a wider band.</p>
+    <div class="panel">
+      <canvas id="c2" aria-label="Top: the transmitted pulse in time, with three of its frequency components drawn faintly. Bottom: the magnitude of its spectrum."></canvas>
+      <div class="controls">
+        <div class="ctl"><label for="s2w"><span>Pulse width</span> <output id="o2w"></output></label><input id="s2w" type="range" min="20" max="120" step="5" value="40"></div>
+      </div>
+      <div class="eq" data-tex="p(t)=\int_{-\infty}^{\infty}\textcolor{#d9700f}{P(f)}\,\textcolor{#0a86ab}{e^{\,j2\pi f t}}\,df"></div>
+      <div class="syms">
+        <span class="sym c4"><b>P(f)</b><span>spectrum of the pulse: how much of frequency f it contains</span></span>
+        <span class="sym c2"><b>e<sup>j2&pi;ft</sup></b>a sinusoid of frequency f written as a rotating complex number, cos + j sin</span>
+        <span class="sym"><b>j</b><span>the imaginary unit, &radic;&minus;1</span></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Step 3 -->
+  <section class="step" aria-labelledby="s3">
+    <div class="step-head"><span class="step-no">Step 3</span><h2 id="s3">A point-like antenna radiates a spherical wave</h2></div>
+    <p class="cap">At distance R the wave arrives with a phase delay kR and an amplitude reduced by 1/(4&pi;R), because the same energy is spread over a larger sphere. This is the Green's function of the scalar wave equation. In a lossy medium the wavenumber is complex, k = &beta; &minus; j&alpha;, and the amplitude also decays as e<sup>&minus;&alpha;R</sup>.</p>
+    <div class="panel">
+      <canvas id="c3" aria-label="Left: wavefronts spreading from a point antenna, fading with distance. Right: the real part of the Green's function against distance, with the envelope for spreading alone and for spreading and loss together."></canvas>
+      <div class="controls">
+        <div class="ctl"><label for="s3a"><span>Attenuation constant &alpha; (0 = lossless)</span> <output id="o3a"></output></label><input id="s3a" type="range" min="0" max="40" step="1" value="15"></div>
+      </div>
+      <div class="readouts" id="r3"></div>
+      <div class="eq" data-tex="E^{\mathrm{inc}}(f,\mathbf r)=P(f)\,G(f,\mathbf r),\qquad G(f,\mathbf r)=\frac{\textcolor{#0a86ab}{e^{-jkR}}}{\textcolor{#c2185b}{4\pi R}}=\frac{\textcolor{#0f8f62}{e^{-\alpha R}}\,\textcolor{#0a86ab}{e^{-j\beta R}}}{\textcolor{#c2185b}{4\pi R}},\qquad k=\beta-j\alpha,\qquad R=|\mathbf r-\mathbf r_m|"></div>
+      <div class="syms">
+        <span class="sym"><b>r<sub>m</sub></b><span>position of antenna m</span></span>
+        <span class="sym"><b>r</b><span>any point in the medium</span></span>
+        <span class="sym c2"><b>e<sup>&minus;j&beta;R</sup></b><span>phase delay accumulated over the distance R; &beta; = 2&pi;f/c is the phase constant</span></span>
+        <span class="sym c1"><b>1/(4&pi;R)</b><span>radial spreading of a spherical wave</span></span>
+        <span class="sym c3"><b>e<sup>&minus;&alpha;R</sup></b><span>loss in the medium; &alpha; is the attenuation constant in nepers per metre (1 Np = 8.69 dB)</span></span>
+        <span class="sym"><b>E<sup>inc</sup></b><span>incident field, the field that reaches r</span></span>
+      </div>
+      <div class="tags"><span class="tag">Assumed: homogeneous medium</span><span class="tag">Assumed from here on: lossless (&alpha; = 0) and non-dispersive (&beta; proportional to f)</span><span class="tag">Assumed: point-like antenna</span></div>
+    </div>
+  </section>
+
+  <!-- Step 4 -->
+  <section class="step" aria-labelledby="s4">
+    <div class="step-head"><span class="step-no">Step 4</span><h2 id="s4">The recorded echo from point scatterers</h2></div>
+    <p class="cap">Each scatterer re-radiates the field that reaches it in proportion to its reflectivity &sigma;<sub>n</sub>, and the re-radiated wave travels the distance R<sub>n</sub> back to the antenna. Under the Born approximation the field reaching each scatterer is the incident field alone, so G appears twice and the echoes of the scatterers add.</p>
+    <div class="panel">
+      <canvas id="c4" aria-label="Top: an antenna and three point scatterers on a range axis, with the outgoing and returning paths. Bottom: the time signal recorded at the antenna, with one echo per scatterer."></canvas>
+      <div class="controls">
+        <div class="ctl"><label for="s4a"><span>&sigma;<sub>1</sub> at 20 mm</span> <output id="o4a"></output></label><input id="s4a" type="range" min="0" max="1" step="0.05" value="0.2"></div>
+        <div class="ctl"><label for="s4b"><span>&sigma;<sub>2</sub> at 30 mm</span> <output id="o4b"></output></label><input id="s4b" type="range" min="0" max="1" step="0.05" value="0.5"></div>
+        <div class="ctl"><label for="s4c"><span>&sigma;<sub>3</sub> at 60 mm</span> <output id="o4c"></output></label><input id="s4c" type="range" min="0" max="1" step="0.05" value="0.8"></div>
+      </div>
+      <div class="eq" data-tex="\begin{aligned}&\textsf{(1) each scatterer re-radiates the total field}\\&\qquad E^{\mathrm{sc}}_m(f)=\sum_{n=1}^{N}\textcolor{#0f8f62}{\sigma_n}\,G(\mathbf r_m,\mathbf r_n)\,E^{\mathrm{tot}}(\mathbf r_n)\\[6pt]&\textsf{(2) Born: total field replaced by incident field}\\&\qquad E^{\mathrm{tot}}(\mathbf r_n)\approx E^{\mathrm{inc}}(\mathbf r_n)=\textcolor{#d9700f}{P(f)}\,G(\mathbf r_n,\mathbf r_m)\\[6pt]&\textsf{(3) substituting (2) into (1)}\\&\qquad E^{\mathrm{sc}}_m(f)\approx \textcolor{#d9700f}{P(f)}\sum_{n=1}^{N}\textcolor{#0f8f62}{\sigma_n}\,G(\mathbf r_m,\mathbf r_n)\,G(\mathbf r_n,\mathbf r_m)\\&\qquad\phantom{E^{\mathrm{sc}}_m(f)}=\textcolor{#d9700f}{P(f)}\sum_{n=1}^{N}\textcolor{#0f8f62}{\sigma_n}\,\frac{\textcolor{#0a86ab}{e^{-j2kR_n}}}{\textcolor{#c2185b}{(4\pi R_n)^2}}\end{aligned}"></div>
+      <div class="eq" data-tex="\begin{aligned}&\textsf{where } \textcolor{#0f8f62}{\sigma_n} \textsf{ comes from}\\&\qquad \textcolor{#0f8f62}{\sigma_n}\approx k^2\int_{\text{scatterer }n} \chi(\mathbf r')\,dV'\\&\qquad \chi=\frac{\varepsilon_{r,\mathrm{obj}}-\varepsilon_{r}}{\varepsilon_{r}}\\&\qquad k^2=\Big(\frac{2\pi f}{c_0}\Big)^{2}\varepsilon_r\\&\qquad\textsf{carries the frequency dependence}\end{aligned}"></div>
+      <div class="syms">
+        <span class="sym"><b>E<sup>sc</sup><sub>m</sub>(f)</b><span>scattered field recorded by antenna m</span></span>
+        <span class="sym"><b>E<sup>tot</sup></b><span>total field at the scatterer: the incident field plus the echoes of all other scatterers</span></span>
+        <span class="sym"><b>G(a, b)</b><span>field at a from a point source at b; it depends only on |a &minus; b|, so G(a, b) = G(b, a)</span></span>
+        <span class="sym c3"><b>&sigma;<sub>n</sub></b><span>reflectivity of scatterer n: set by its permittivity contrast &Delta;&epsilon;<sub>r</sub> and its volume</span></span>
+        <span class="sym"><b>&chi;(r&prime;)</b><span>relative permittivity contrast with the background: zero where the material matches its surroundings; complex if the materials are lossy</span></span>
+        <span class="sym c2"><b>e<sup>&minus;j2kR<sub>n</sub></sup></b><span>round-trip phase delay, the time of flight 2R<sub>n</sub>/c</span></span>
+        <span class="sym c1"><b>(4&pi;R<sub>n</sub>)<sup>2</sup></b>spreading on the way out and on the way back</span>
+      </div>
+      <div class="tags"><span class="tag">Assumed: Born approximation (weak scattering, no interaction between scatterers)</span><span class="tag">Assumed: object is a sum of independent point scatterers</span><span class="tag">Assumed: reflectivity does not depend on frequency</span></div>
+    </div>
+  </section>
+
+  <!-- Step 5 -->
+  <section class="step" aria-labelledby="s5">
+    <div class="step-head"><span class="step-no">Step 5</span><h2 id="s5">Range processing recovers reflectivity against distance</h2></div>
+    <p class="cap">Dividing by P(f) and taking the inverse Fourier transform over the band turns the recorded spectrum into a range profile with a peak at each scatterer. The parameters follow Table II of Curtis et al. (2017); &epsilon;<sub>r</sub> = 2.5 is assumed here.</p>
+    <div class="panel">
+      <canvas id="c5" aria-label="Range profile Psi of r for one antenna position, with stems at the true scatterer ranges and reflectivities"></canvas>
+      <div class="controls">
+        <div class="btnrow">
+          <button id="b5d" type="button" aria-pressed="true">Divide by P(f)</button>
+          <button id="b5r" type="button" aria-pressed="true">Compensate radial spreading (4&pi;r)<sup>2</sup></button>
+        </div>
+        <div class="ctl"><label for="s5f"><span>Highest frequency f<sub>max</sub></span> <output id="o5f"></output></label><input id="s5f" type="range" min="2" max="12" step="0.5" value="12"></div>
+      </div>
+      <div class="readouts" id="r5"></div>
+      <div class="eq" data-tex="\begin{aligned}&\textsf{from the recorded echo, with } k_r=2k\\&\qquad \frac{E^{\mathrm{sc}}_m(k_r)}{\textcolor{#d9700f}{P(k_r)}}=\sum_{n}\textcolor{#0f8f62}{\sigma_n}\,\frac{\textcolor{#0a86ab}{e^{-jk_rR_n}}}{\textcolor{#c2185b}{(4\pi R_n)^2}}\\[6pt]&\textsf{ignoring the spreading}\\&\qquad \frac{E^{\mathrm{sc}}_m(k_r)}{\textcolor{#d9700f}{P(k_r)}}\approx\sum_{n}\textcolor{#0f8f62}{\sigma_n}\,\textcolor{#0a86ab}{e^{-jk_rR_n}}\\&\qquad\Longrightarrow\ \Psi_m(r)=\frac{1}{2\pi}\int\frac{E^{\mathrm{sc}}_m(k_r)}{\textcolor{#d9700f}{P(k_r)}}\,e^{\,j\textcolor{#0a86ab}{k_r r}}\,dk_r\\&\qquad\phantom{\Longrightarrow\ \Psi_m(r)}\approx\sum_{n}\textcolor{#0f8f62}{\sigma_n}\,\delta(r-R_n)\end{aligned}"></div>
+      <p class="cap">The spreading changes how bright a scatterer appears, not where it appears.</p>
+      <div class="syms">
+        <span class="sym"><b>k<sub>r</sub> = 2k</b><span>range wavenumber; the factor 2 accounts for the round trip</span></span>
+        <span class="sym"><b>k<sub>r</sub> = 4&pi;f/c</b><span>range wavenumber: the same frequency samples, labelled by k<sub>r</sub> instead of f</span></span>
+        <span class="sym"><b>&Psi;<sub>m</sub>(r)</b><span>psi: the range profile, the inverse Fourier transform from range wavenumber k<sub>r</sub> to distance r</span></span>
+        <span class="sym"><b>&delta;(r&minus;R<sub>n</sub>)</b><span>a spike at the scatterer's distance R<sub>n</sub>; a finite band widens it to a sinc of width about c/(2B)</span></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Step 6 -->
+  <section class="step" aria-labelledby="s6">
+    <div class="step-head"><span class="step-no">Step 6</span><h2 id="s6">The time-domain form: delay, then read the sample</h2></div>
+    <p class="cap">Keeping the pulse and writing the range phase as a time delay turns the range profile into the recorded time signal, read at the round-trip delay of the focal point. Every point on the circle through r has the same delay, so one antenna gives range and no direction. Drag the focal point.</p>
+    <div class="panel">
+      <canvas id="c6" aria-label="Left: image from one antenna, showing rings of constant delay, with a draggable focal point and the circle of equal delay through it. Right: the recorded time signal with a marker at the focal point's delay."></canvas>
+      <div class="readouts" id="r6"></div>
+      <div class="eq" data-tex="\begin{aligned}&\textsf{(1) the same transform, keeping the pulse}\\&\qquad I_m(r)\propto\int E^{\mathrm{sc}}_m(f)\,e^{\,j\textcolor{#0a86ab}{k_r r}}\,df\\[6pt]&\textsf{(2) the range phase as a round-trip delay } \textcolor{#0a86ab}{\tau}\\&\qquad \textcolor{#0a86ab}{k_r r}=\frac{4\pi f}{c}\,r=2\pi f\,\frac{2r}{c}=2\pi f\,\textcolor{#0a86ab}{\tau},\\&\qquad \textcolor{#0a86ab}{\tau}=\frac{2r}{c}\\&\qquad I_m(r)\propto\int E^{\mathrm{sc}}_m(f)\,e^{\,j2\pi f\textcolor{#0a86ab}{\tau}}\,df\\[6pt]&\textsf{(3) the recorded time signal, read at } t=\textcolor{#0a86ab}{\tau}\\&\qquad s_m(t)=\int E^{\mathrm{sc}}_m(f)\,e^{\,j2\pi f t}\,df\\&\qquad\Longrightarrow\ I_m(r)\propto s_m(\textcolor{#0a86ab}{\tau})\\[6pt]&\textsf{(4) for a focal point } \mathbf r\\&\qquad I_m(\mathbf r)=s_m\big(\textcolor{#0a86ab}{\tau_m(\mathbf r)}\big),\\&\qquad \textcolor{#0a86ab}{\tau_m(\mathbf r)}=\frac{2|\mathbf r-\mathbf r_m|}{c}\\[6pt]&\textsf{(5) the same sample written as an integral}\\&\textsf{\phantom{(5) }(sifting property of } \delta\textsf{)}\\&\qquad s_m\big(\textcolor{#0a86ab}{\tau_m(\mathbf r)}\big)=\int s_m(t)\,\delta\big(t-\textcolor{#0a86ab}{\tau_m(\mathbf r)}\big)\,dt\end{aligned}"></div>
+      <div class="syms">
+        <span class="sym"><b>s<sub>m</sub>(t)</b><span>time signal recorded by antenna m</span></span>
+        <span class="sym c2"><b>&tau;<sub>m</sub>(r)</b><span>round-trip travel time from antenna m to the focal point r and back, 2|r &minus; r<sub>m</sub>|/c</span></span>
+        <span class="sym c2"><b>&tau; = 2r/c</b><span>round-trip time for distance r: the same phase as k<sub>r</sub>r at every frequency</span></span>
+        <span class="sym"><b>I<sub>m</sub></b><span>the delay-and-sum result for antenna m; it keeps the pulse, where the range profile &Psi;<sub>m</sub> divides it out</span></span>
+        <span class="sym"><b>&delta; sifting</b><span>&int; s(t) &delta;(t &minus; &tau;) dt = s(&tau;): integrating against a delta picks out the value of the signal at &tau;</span></span>
+      </div>
+      <div class="tags"><span class="tag">Assumed: straight-line propagation at one average speed c</span></div>
+    </div>
+  </section>
+
+  <!-- Step 7 -->
+  <section class="step" aria-labelledby="s7">
+    <div class="step-head"><span class="step-no">Step 7</span><h2 id="s7">Summing over antennas forms the image</h2></div>
+    <p class="cap">The circles from different antennas cross only at the scatterer, where the echoes add in phase. Elsewhere they add with mixed signs and partly cancel. Click inside the breast to move the scatterer. The left image is the signed sum; the right image squares it and integrates over a window about one pulse long, which gives the energy image used in practice.</p>
+    <div class="panel">
+      <canvas id="c7" aria-label="Two images of a breast cross-section with a ring of antennas. Left: the signed delay-and-sum value at each focal point, in a red-blue diverging colour map, with a positive peak at the scatterer surrounded by rings of alternating sign. Right: the energy image, with a single bright spot at the scatterer. Both images sharpen as antennas are added."></canvas>
+      <div class="controls">
+        <div class="ctl"><label for="s7M"><span>Antennas used M</span> <output id="o7M"></output></label><input id="s7M" type="range" min="1" max="48" step="1" value="12"></div>
+        <div class="btnrow"><button id="b7p" type="button">Add antennas one by one</button></div>
+      </div>
+      <div class="eq" data-tex="\begin{aligned}&\textsf{sum (left)}\\&\qquad I(\mathbf r)=\frac{1}{M}\sum_{m=1}^{M}s_m\big(\tau_m(\mathbf r)\big)\\[6pt]&\textsf{energy (right), as used in practice}\\&\qquad I(\mathbf r)=\int_0^T\Big[\sum_{m=1}^{M}s_m\big(t+\tau_m(\mathbf r)\big)\Big]^2dt\end{aligned}"></div>
+      <div class="syms">
+        <span class="sym"><b>[&Sigma; &hellip;]<sup>2</sup></b><span>sum first, then square: echoes add in phase before squaring</span></span>
+        <span class="sym"><b>T</b><span>integration window, about one pulse long, which collects the echo energy around the delay</span></span>
+      </div>
+    </div>
+  </section>
+
+  <p class="part">Part B. Assumptions, weighting factors and adaptive beamformers</p>
+
+  <!-- Step 8 -->
+  <section class="step" aria-labelledby="s8">
+    <div class="step-head"><span class="step-no">Step 8</span><h2 id="s8">The assumptions in the derivation</h2></div>
+    <p class="cap">Each simplification enters at one stage of the derivation. The grey line gives the finding of Curtis et al. (2017) for their antenna and phantoms.</p>
+    <div class="cards" id="cards8"></div>
+  </section>
+
+  <!-- Map: design space -->
+  <section class="step" aria-labelledby="sds">
+    <div class="step-head"><span class="step-no">Map</span><h2 id="sds">A design space for beamformers</h2></div>
+    <p class="cap">The beamformers that follow differ in three choices: how the weights are set, the domain in which the processing is done, and the propagation model. Methods shown in the explainer are highlighted; select one to open its page.</p>
+    <div class="panel">
+      <div class="dsgrid" id="dsgrid" role="group" aria-label="Beamformers arranged by propagation model (rows) and by fixed or data-adaptive weights (columns)">
+        <span class="corner" aria-hidden="true"></span>
+        <span class="colh">Fixed weights</span>
+        <span class="colh">Data-adaptive weights</span>
+
+        <span class="rowh">Delay model</span>
+        <div class="dscell"><span class="clab">fixed</span><button type="button" class="meth" data-target="s7">DAS</button><span class="sep">,</span><button type="button" class="meth" data-target="sk">weighted DAS</button><span class="sep">,</span><button type="button" class="meth" data-target="s9b">CR-DAS</button><span class="sep">,</span><span class="meth">DMAS</span><span class="dom">(time domain)</span></div>
+        <div class="dscell"><span class="clab">adaptive</span><button type="button" class="meth" data-target="s9">CF-DAS</button><span class="sep">,</span><button type="button" class="meth" data-target="s9b">IDAS</button><span class="sep">,</span><button type="button" class="meth" data-target="s11">Capon/RCB</button><span class="sep">,</span><button type="button" class="meth" data-target="s10">MIST</button><span class="dom">(time or frequency domain)</span></div>
+
+        <span class="rowh">Wave equation</span>
+        <div class="dscell"><span class="clab">fixed</span><button type="button" class="meth" data-target="s6">PSAS</button><span class="sep">,</span><button type="button" class="meth" data-target="s5">SAR</button><span class="sep">,</span><span class="meth">f&ndash;k migration</span><span class="sep">,</span><span class="meth">holography</span><span class="sep">,</span><span class="meth">Huygens principle</span><span class="dom">(frequency/wavenumber domain)</span></div>
+        <div class="dscell"><span class="clab">adaptive</span><span class="meth">Model-based compensation of dispersion and attenuation</span></div>
+
+        <span class="rowh">Subspace</span>
+        <div class="dscell"><span class="clab">fixed</span><span class="meth">Time-reversal back-propagation</span></div>
+        <div class="dscell"><span class="clab">adaptive</span><span class="meth">DORT</span><span class="sep">,</span><span class="meth">MUSIC</span><span class="dom">(eigenvectors of the data)</span></div>
+
+        <span class="rowh">Learned</span>
+        <div class="dscell span2"><span class="meth">Networks trained on simulated or measured data, applied to signals or to DAS images</span></div>
+      </div>
+    </div>
+    <ul class="hist">
+      <li><b>Weights:</b> fixed weights depend only on the geometry; data-adaptive weights are computed from the signals at each focal point.</li>
+      <li><b>Domain:</b> a delay in time is a phase shift in frequency, so the same method can be written in either domain; wavenumber methods use FFTs.</li>
+      <li><b>Model:</b> the delay model can be replaced by the wave equation, or by the subspace of the measured data.</li>
+    </ul>
+    <p class="cap">Every method aligns the echoes with a propagation model, weights them and combines them; methods differ in the weights, the domain or the model.</p>
+  </section>
+
+  <section class="keybox" aria-labelledby="sk">
+    <h3 id="sk">The weighted DAS equation</h3>
+    <p class="cap">The assumptions remove amplitude terms that real echoes carry. Weighting each aligned signal before the sum restores them; the weighted signals are then summed, squared and integrated over a window T about one pulse long.</p>
+    <div class="eq" data-tex="I(\mathbf r)=\int_{0}^{T}\Big[\sum_{m=1}^{M}\textcolor{#c2185b}{w_m(\mathbf r)}\;s_m\big(t+\textcolor{#0a86ab}{\tau_m(\mathbf r)}\big)\Big]^2dt"></div>
+    <div class="syms">
+      <span class="sym c2"><b>&tau;<sub>m</sub>(r)</b><span>round-trip delay: aligns the echoes from r</span></span>
+      <span class="sym"><b>&Sigma;</b><span>sum over antennas: echoes from r add in phase</span></span>
+      <span class="sym c1"><b>w<sub>m</sub>(r)</b><span>weight per antenna and focal point; w = 1 is plain DAS</span></span>
+      <span class="sym"><b>[&middot;]<sup>2</sup>, &int;<sub>0</sub><sup>T</sup></b>energy in a window T about one pulse long</span>
+    </div>
+    <ul class="hist">
+      <li><b>Hagness et al. (1998):</b> the original confocal DAS; aligned signals summed without weights.</li>
+      <li><b>Li and Hagness (2001):</b> introduced weights w<sub>m</sub> in I(r) = [&Sigma; w<sub>m</sub> B<sub>m</sub>(&tau;<sub>m</sub>(r))]<sup>2</sup> to compensate the radial spreading of the cylindrical waves in their 2-D model; no formula for w<sub>m</sub> is given.</li>
+      <li><b>Fear et al. (2002):</b> applied the compensation to each signal before summing, according to the propagation distance of each time sample. In the planar system the factors came from an FDTD simulation of the antenna (spreading and loss together); in the cylindrical system a 1/r spreading model was used, and path-loss compensation was omitted because it enhanced clutter.</li>
+      <li><b>Klemm et al. (2008):</b> improved DAS (IDAS), which multiplies the energy at each focal point by a quality factor computed from how the energy builds up as the aligned signals are added, rewarding focal points where they add coherently.</li>
+      <li><b>Klemm et al. (2009):</b> coherence-factor DAS (CF-DAS), which scales each focal point by a coherence factor adapted from ultrasound imaging; it is close to 1 when the aligned signals agree and close to 0 when they cancel.</li>
+      <li><b>O'Halloran et al. (2010):</b> channel-ranked DAS, which weights each channel by the rank of its path length, so that signals that cross less heterogeneous tissue count more.</li>
+      <li><b>Curtis et al. (2017):</b> radial-spreading compensation by (4&pi;R)<sup>2</sup>, derived from the Green's function.</li>
+    </ul>
+  </section>
+
+  <!-- Step 9 -->
+  <section class="step" aria-labelledby="s9">
+    <div class="step-head"><span class="step-no">Step 9</span><h2 id="s9">Weighting factors</h2></div>
+    <p class="cap">Two equal tumours sit at different depths in a lossy medium with weak clutter. Distance-based weights undo the amplitude terms that the model dropped; the coherence factor scales each pixel by how well the aligned signals agree. Click a pixel to see its aligned signals.</p>
+    <div class="panel">
+      <canvas id="c9" aria-label="DAS image with two tumours, A near the skin and B near the centre, and weak clutter; beside it, the signals of every second antenna around the selected pixel, plotted against time relative to the focal point, in grey before alignment and in blue after alignment"></canvas>
+      <div class="controls">
+        <div class="btnrow">
+          <button id="b9s" type="button" aria-pressed="false">Spreading weight w = (R/R<sub>0</sub>)<sup>2</sup></button>
+          <button id="b9a" type="button" aria-pressed="false">Attenuation weight w = e<sup>2&alpha;R</sup></button>
+          <button id="b9c" type="button" aria-pressed="false">Coherence factor</button>
+        </div>
+        <div class="ctl"><label for="s9a"><span>Attenuation &alpha;</span> <output id="o9a"></output></label><input id="s9a" type="range" min="0" max="25" step="1" value="10"></div>
+      </div>
+      <div class="readouts" id="r9"></div>
+      <div class="eq" data-tex="\textcolor{#c2185b}{w_m^{\mathrm{RS}}}=\Big(\tfrac{R_m}{R_0}\Big)^{2},\qquad \textcolor{#c2185b}{w_m^{\alpha}}=e^{\,2\alpha R_m},\qquad \mathrm{CF}(\mathbf r)=\frac{\big|\sum_{m}x_m\big|^2}{M\sum_{m}|x_m|^2},\quad x_m=w_m\,s_m\big(\tau_m(\mathbf r)\big)"></div>
+      <div class="syms">
+        <span class="sym c1"><b>w<sup>RS</sup></b><span>undoes the (4&pi;R)<sup>2</sup> spreading dropped in range processing</span></span>
+        <span class="sym c1"><b>w<sup>&alpha;</sup></b><span>undoes the loss factor of the lossy Green's function on the way out and back, e<sup>&minus;2&alpha;R</sup>, with one &alpha; for all frequencies</span></span>
+        <span class="sym"><b>CF</b><span>1 when all aligned samples agree, near 0 when they cancel</span></span>
+        <span class="sym"><b>R<sub>m</sub></b>distance from antenna m to the focal point</span>
+        <span class="sym"><b>R<sub>0</sub></b><span>reference distance (60 mm, the antenna-ring radius) that makes the weight dimensionless; it scales the whole image and does not change its shape</span></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Step 10 (id s9b): channel-ranked and quality-factor weights -->
+  <section class="step" aria-labelledby="s9b">
+    <div class="step-head"><span class="step-no">Step 10</span><h2 id="s9b">Channel-ranked and quality-factor weights</h2></div>
+    <p class="cap">Two further weights judge each channel or each focal point. The channel-ranked weight trusts signals with shorter paths more, because they cross less tissue whose speed differs from the assumed average; the quality factor rewards focal points where the energy grows quadratically as the aligned signals are added, as it does for a true scatterer. Tissue heterogeneity perturbs each travel time; click a pixel to inspect it.</p>
+    <div class="panel">
+      <canvas id="c9b" aria-label="DAS, channel-ranked DAS or improved DAS image of two tumours, A near the skin and B near the centre, with weak clutter and the antenna ring; beside it, for the selected pixel, the channel-ranked weights against rank and the energy collected as the aligned signals are added, with the fitted parabola"></canvas>
+      <div class="controls">
+        <div class="btnrow" role="group" aria-label="Image mode">
+          <button id="b9bD" type="button" aria-pressed="true">DAS</button>
+          <button id="b9bC" type="button" aria-pressed="false">CR-DAS</button>
+          <button id="b9bI" type="button" aria-pressed="false">IDAS</button>
+        </div>
+        <div class="ctl"><label for="s9bh"><span>Tissue heterogeneity h</span> <output id="o9bh"></output></label><input id="s9bh" type="range" min="0" max="5" step="0.5" value="2"></div>
+      </div>
+      <div class="readouts" id="r9b"></div>
+      <div class="eq" data-tex="\begin{aligned}&\textsf{channel-ranked weight}\\&\qquad w_m=\frac{N-\mathrm{rank}_m}{N(N+1)/2}\\[6pt]&\textsf{quality factor}\\&\qquad QF=a,\qquad \frac{E(n)}{1+\sigma_e}\approx a\,n^2+b\,n+c\\[6pt]&\textsf{improved DAS}\\&\qquad I(\mathbf r)=QF(\mathbf r)\\&\qquad\qquad\times\int_0^T\Big[\sum_{m}w_m\,s_m\big(t+\tau_m(\mathbf r)\big)\Big]^2dt\end{aligned}"></div>
+      <div class="syms">
+        <span class="sym"><b>rank<sub>m</sub></b><span>position of antenna m when the antennas are sorted by distance to the focal point (1 = nearest)</span></span>
+        <span class="sym"><b>N</b><span>number of signals ranked (here the 32 antennas)</span></span>
+        <span class="sym"><b>E(n)</b><span>energy collected after adding the first n aligned signals</span></span>
+        <span class="sym"><b>&sigma;<sub>e</sub></b><span>standard deviation of the energies of the individual signals</span></span>
+        <span class="sym"><b>QF</b><span>quality factor: the curvature a of the fitted parabola; large when the energy grows quadratically, as for a coherent scatterer</span></span>
+        <span class="sym"><b>h</b><span>relative error of the local wave speed, which perturbs each travel time; the beamformer still assumes the average speed</span></span>
+      </div>
+      <div class="tags"><span class="tag">Illustrative: heterogeneity modelled as random travel-time errors that grow with path length</span><span class="tag">All three images: echoes first equalised for spreading and loss</span></div>
+    </div>
+  </section>
+
+  <!-- Step 11 (id s10) -->
+  <section class="step" aria-labelledby="s10">
+    <div class="step-head"><span class="step-no">Step 11</span><h2 id="s10">MIST replaces each weight with a filter</h2></div>
+    <p class="cap">In a lossy medium, high frequencies fade faster, so echoes that travelled further arrive smaller and wider. MIST models this path-dependent response H<sub>m</sub>(f) and designs one FIR filter W<sub>m</sub>(f) per channel so that the summed response from the focal point is a delayed copy of the transmitted pulse; the pixel value is the energy of the summed output within a short time window.</p>
+    <div class="panel">
+      <canvas id="c10" aria-label="Top: aligned echoes from one focal point at six antennas, smaller and wider for longer paths. Middle: the DAS sum and the MIST sum compared with the transmitted pulse. Bottom: the filter gain of each channel against frequency."></canvas>
+      <div class="controls">
+        <div class="ctl"><label for="s10a"><span>Attenuation at 4 GHz &alpha;<sub>0</sub></span> <output id="o10a"></output></label><input id="s10a" type="range" min="0" max="30" step="1" value="12"></div>
+        <div class="ctl"><label for="s10e"><span>Regularisation &eta;</span> <output id="o10e"></output></label><input id="s10e" type="range" min="-4" max="0" step="0.25" value="-2"></div>
+      </div>
+      <div class="readouts" id="r10"></div>
+      <div class="eq" data-tex="\sum_{m=1}^{M}\textcolor{#c2185b}{W_m(f)}\,\textcolor{#0a86ab}{H_m(f;\mathbf r_0)}\approx e^{-j2\pi f T_d},\qquad \textcolor{#0a86ab}{H_m(f;\mathbf r_0)}=\frac{e^{-\alpha(f)\,2R_m}\,e^{-j\beta(f)\,2R_m}}{R_m^{2}}"></div>
+      <div class="syms">
+        <span class="sym c2"><b>H<sub>m</sub>(f; r<sub>0</sub>)</b><span>modelled round-trip propagation between antenna m and focal point r<sub>0</sub>: loss, phase and spreading (1/R<sub>m</sub><sup>2</sup> for a point source in 3-D; Bond et al. use 1/R<sub>m</sub> in their 2-D model)</span></span>
+        <span class="sym c1"><b>W<sub>m</sub>(f)</b><span>filter for channel m (an FIR filter in the time domain, which also supplies the fractional part of the alignment delay)</span></span>
+        <span class="sym"><b>e<sup>&minus;j2&pi;fT<sub>d</sub></sup></b><span>unit gain and a fixed delay T<sub>d</sub>: the pulse passes undistorted</span></span>
+        <span class="sym"><b>&eta;</b><span>regularisation weight that penalises the filter norm, so that noise and model errors are not strongly amplified</span></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Step 12 (id s11) -->
+  <section class="step" aria-labelledby="s11">
+    <div class="step-head"><span class="step-no">Step 12</span><h2 id="s11">Capon and robust Capon beamformers choose the weights from the data</h2></div>
+    <p class="cap">After alignment the wanted echo is the same in all eight channels. A second echo, from a scatterer near antennas 1 to 3, arrives later and is strong only in those channels. The Capon beamformer minimises the output power while keeping unit gain on the wanted echo. When the channels do not match exactly, it also suppresses the wanted echo; the robust form allows the match to be wrong by up to &epsilon;.</p>
+    <div class="panel">
+      <canvas id="c11" aria-label="Top: eight aligned channels containing the wanted echo, an interfering echo and noise. Middle: outputs of DAS, standard Capon and robust Capon against the true echo. Bottom: the weights of each beamformer."></canvas>
+      <div class="controls">
+        <div class="ctl"><label for="s11i"><span>Interference amplitude</span> <output id="o11i"></output></label><input id="s11i" type="range" min="0" max="4" step="0.1" value="2"></div>
+        <div class="ctl"><label for="s11m"><span>Channel mismatch</span> <output id="o11m"></output></label><input id="s11m" type="range" min="0" max="40" step="1" value="15"></div>
+        <div class="ctl"><label for="s11e"><span>Uncertainty bound &epsilon;</span> <output id="o11e"></output></label><input id="s11e" type="range" min="0.05" max="3" step="0.05" value="1"></div>
+      </div>
+      <div class="readouts" id="r11"></div>
+      <div class="eq" data-tex="\mathbf y(t)=\textcolor{#0a86ab}{\mathbf a}\,s(t)+\mathbf e(t),\qquad \min_{\mathbf w}\ \mathbf w^{T}\textcolor{#d9700f}{\mathbf R}\mathbf w\ \ \text{subject to}\ \ \mathbf w^{T}\textcolor{#0a86ab}{\hat{\mathbf a}}=1\ \ \Rightarrow\ \ \textcolor{#c2185b}{\hat{\mathbf w}}=\frac{\textcolor{#d9700f}{\mathbf R^{-1}}\textcolor{#0a86ab}{\hat{\mathbf a}}}{\textcolor{#0a86ab}{\hat{\mathbf a}}^{T}\textcolor{#d9700f}{\mathbf R^{-1}}\textcolor{#0a86ab}{\hat{\mathbf a}}},\qquad \|\textcolor{#0a86ab}{\hat{\mathbf a}}-\mathbf a\|^2\le\varepsilon"></div>
+      <div class="syms">
+        <span class="sym"><b>y(t)</b><span>the M aligned channel samples at time t, as a vector</span></span>
+        <span class="sym c2"><b>a</b>steering vector; after alignment a = [1, 1, &hellip;, 1]<sup>T</sup></span>
+        <span class="sym"><b>e(t)</b><span>noise and echoes from other locations</span></span>
+        <span class="sym c4"><b>R</b>sample covariance, the average of y(t)y(t)<sup>T</sup> over time</span>
+        <span class="sym c1"><b>w&#770;</b><span>weights; DAS uses w = a/M</span></span>
+        <span class="sym c2"><b>&epsilon;</b>how far the true steering vector &acirc; may lie from a (RCB); &epsilon; &rarr; 0 gives standard Capon</span>
+      </div>
+    </div>
+  </section>
+
+  <p class="part">Part C. Early-time artefact removal</p>
+
+  <section class="step" aria-labelledby="ar1">
+    <div class="step-head"><span class="step-no">Step 13</span><h2 id="ar1">The early-time artefact</h2></div>
+    <p class="cap">The recorded signal begins with the reflection from the antenna and the skin, which is several orders of magnitude larger than the tumour echo and overlaps it in time when the tumour lies close to the skin.</p>
+    <div class="panel">
+      <figure class="pubfig"><img src="images/elahi2017_fig7_1.png" alt="Time-domain backscattered signal at one channel, with a large early oscillation inside the shaded artefact-dominant window followed by much smaller oscillations"><figcaption>Time-domain backscattered signal recorded at channel 9 of a breast model, with the artefact-dominant time window shaded; the smaller oscillations after the window contain the responses from inside the breast. Elahi (2017), Fig. 7.1; published as Elahi et al. (2017).</figcaption></figure>
+    </div>
+  </section>
+
+  <section class="step" aria-labelledby="ar2">
+    <div class="step-head"><span class="step-no">Step 14</span><h2 id="ar2">Artefact-removal algorithms</h2></div>
+    <p class="cap">Each algorithm estimates the artefact in a channel from the other channels, or from the early part of the same signal, and subtracts it. The estimate is accurate when the skin response is similar across channels.</p>
+    <div class="panel">
+            <div class="eq" data-tex="\begin{aligned}&\textsf{average subtraction}\\&\qquad s_i[n]=b_i[n]-\frac{1}{N}\sum_{j=1}^{N}b_j[n]\\[4pt]&\textsf{rotation subtraction}\\&\qquad s_i[n]=b_i[n]-b_i^{\mathrm{rot}}[n]\\[4pt]&\textsf{Wiener filter}\\&\qquad s_i[n]=b_i[n]-\mathbf q^{T}\mathbf b_{-i}[n]\\&\qquad \mathbf q=\arg\min_{\mathbf q}\sum_{n=n_0}^{n_0+m-1}\big|b_i[n]-\mathbf q^{T}\mathbf b_{-i}[n]\big|^2\\[4pt]&\textsf{singular value decomposition}\\&\qquad \mathbf X=\mathbf U\mathbf S\mathbf V^{T},\qquad \mathbf X_s=\mathbf X-\sigma_1\mathbf u_1\mathbf v_1^{T}\end{aligned}"></div>
+      <div class="syms">
+        <span class="sym c1"><b>b<sub>i</sub>[n]</b><span>signal recorded at channel i; s<sub>i</sub>[n] is the signal after removal</span></span>
+        <span class="sym c2"><b>b<sub>i</sub><sup>rot</sup></b><span>signal recorded after rotating the array; here by one antenna spacing</span></span>
+        <span class="sym c3"><b>b<sub>&minus;i</sub>[n], q</b><span>time samples n&minus;1, n, n+1 of all other channels, and the filter weights fitted over the artefact window n<sub>0</sub> to n<sub>0</sub>+m&minus;1, fixed here as the first 12 % of the record</span></span>
+        <span class="sym c4"><b>X, &sigma;<sub>1</sub>u<sub>1</sub>v<sub>1</sub><sup>T</sup></b><span>all channels as rows of a matrix, and its largest singular component, taken as the artefact</span></span>
+        <span class="sym"><b>entropy window</b><span>the entropy of the energy across channels marks where the artefact ends; earlier samples are set to zero</span></span>
+        <span class="sym"><b>hybrid</b><span>the entropy curve selects the artefact-dominated window, from the start to the minimum after its first maximum, and the Wiener filter is fitted over that window</span></span>
+      </div>
+      <div class="tags"><span class="tag">Average subtraction: Fear and Stuchly (2000)</span><span class="tag">Rotation subtraction: Klemm et al. (2008)</span><span class="tag">Wiener filter: Bond et al. (2003)</span><span class="tag">SVD: Verma and Gaikwad (2009)</span><span class="tag">Entropy-based window: Zhi and Chin (2006), simplified here</span><span class="tag">Hybrid: Elahi et al. (2014)</span></div>
+    </div>
+  </section>
+
+  <section class="step" aria-labelledby="ar3">
+    <div class="step-head"><span class="step-no">Step 15</span><h2 id="ar3">Artefact suppression and tumour preservation</h2></div>
+    <p class="cap">An algorithm that removes the artefact more completely also tends to remove more of the tumour response, particularly where the tumour echo is similar across channels or overlaps the skin response in time.</p>
+    <div class="panel">
+      <div class="pubgrid">
+        <figure class="pubfig"><img src="images/elahi2013_fig2_rot.png" alt="Ideal tumour signal and the signal after rotation subtraction"><figcaption>Rotation subtraction</figcaption></figure>
+        <figure class="pubfig"><img src="images/elahi2013_fig2_avg.png" alt="Ideal tumour signal and the signal after average subtraction"><figcaption>Average subtraction</figcaption></figure>
+        <figure class="pubfig"><img src="images/elahi2013_fig2_wf.png" alt="Ideal tumour signal and the signal after Wiener filter"><figcaption>Wiener filter</figcaption></figure>
+        <figure class="pubfig"><img src="images/elahi2013_fig2_svd.png" alt="Ideal tumour signal and the signal after SVD"><figcaption>SVD</figcaption></figure>
+        <figure class="pubfig"><img src="images/elahi2013_fig2_ent.png" alt="Ideal tumour signal and the signal after entropy-based time window"><figcaption>Entropy-based time window</figcaption></figure>
+      </div>
+      <p class="cap">Ideal tumour signal (solid) and the signal after artefact removal (dashed) at one channel of a homogeneous FDTD breast model. Elahi et al. (2013), Fig. 2.</p>
+    </div>
+  </section>
+
+  <section class="step" aria-labelledby="ar4">
+    <div class="step-head"><span class="step-no">Step 16</span><h2 id="ar4">Artefact removal applied to a measured signal</h2></div>
+    <div class="panel">
+      <p class="cap">Fig. 9 of J. Wang, M. Zhang, Y. Bai, H. Xu and Y. Fan, "Distance compensation-based dual adaptive artifact removal algorithm in microwave breast tumor imaging system," <i>Biomed. Signal Process. Control</i>, vol. 88, 105598, 2024, shows one signal measured on a breast phantom, unprocessed and after background subtraction, average subtraction, an adaptive time-entropy method and the DCAF method. The figure is not reproduced in the online version; it is available at <a href="https://doi.org/10.1016/j.bspc.2023.105598">doi:10.1016/j.bspc.2023.105598</a>.</p>
+    </div>
+  </section>
+
+  <!-- Overview -->
+  <section class="step" aria-labelledby="s12">
+    <div class="step-head"><span class="step-no">Recap</span><h2 id="s12">Relations between the beamformers covered here</h2></div>
+    <div class="panel">
+      <svg class="flow" id="flow" viewBox="0 0 900 330" role="img" aria-label="Diagram: the signal model leads to range processing and to the DAS equation. DAS branches into scalar weights, which restore amplitude terms; frequency-dependent filters (MIST), which restore loss and dispersion; and data-derived weights (Capon and RCB), which suppress interference."></svg>
+    </div>
+  </section>
+
+  <section class="step" aria-labelledby="dk1">
+    <div class="step-head"><span class="step-no">Slide</span><h2 id="dk1">Comparison of beamforming approaches</h2></div>
+    <div class="panel tablewrap">
+      <table class="cmp">
+        <thead><tr><th>Approach</th><th>Weights</th><th>Clutter suppression</th><th>Reported limitation</th><th>Cost</th></tr></thead>
+        <tbody>
+          <tr><td>DAS</td><td>Fixed</td><td>Incoherent summation</td><td>Strong clutter in heterogeneous tissue</td><td>Lowest</td></tr>
+          <tr><td>CF-DAS, IDAS</td><td>Data-dependent</td><td>Coherence weighting per voxel</td><td>Also lowers weak true responses</td><td>Low</td></tr>
+          <tr><td>DMAS, CR-DAS</td><td>Fixed</td><td>Pair products; path ranking</td><td>Below DAS in complex scenarios</td><td>Moderate</td></tr>
+          <tr><td>MIST</td><td>Model-based</td><td>Filters matched to a propagation model</td><td>Depends on the assumed tissue model</td><td>Moderate</td></tr>
+          <tr><td>Capon, RCB</td><td>Data-adaptive</td><td>Minimum-variance weights</td><td>Gain lost under model uncertainty</td><td>High</td></tr>
+          <tr><td>Migration, holography</td><td>Fixed</td><td>As DAS, computed with FFTs</td><td>Regular sampling; near-field mapping</td><td>Low</td></tr>
+          <tr><td>DORT, MUSIC</td><td>Subspace</td><td>Separates point scatterers</td><td>Assumes few, well-separated scatterers</td><td>Moderate</td></tr>
+          <tr><td>Learning-based</td><td>Learned</td><td>Learned from training data</td><td>Generalisation to new anatomy</td><td>High to train</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="cap">Every row depends on a propagation model, and an error in that model degrades all of them.</p>
+  </section>
+
+  <section class="step" aria-labelledby="dk2">
+    <div class="step-head"><span class="step-no">Slide</span><h2 id="dk2">Image quality metrics</h2></div>
+    <div class="panel cols2">
+      <ul class="bul">
+        <li><b>Signal-to-clutter ratio</b><div class="eq" data-tex="\mathrm{SCR}=10\log_{10}\frac{\max_{\text{tumour}} I}{\max_{\text{clutter}} I}\ \text{(dB)}"></div></li>
+        <li><b>Signal-to-mean ratio</b><div class="eq" data-tex="\mathrm{SMR}=10\log_{10}\frac{\overline{I}_{\text{tumour}}}{\overline{I}_{\text{image}}}\ \text{(dB)}"></div></li>
+        <li><b>Localisation error</b><div class="eq" data-tex="\mathrm{LE}=\|\mathbf r_{\text{peak}}-\mathbf r_{\text{true}}\|"></div></li>
+        <li><b>FWHM:</b> the extent of the tumour response at half its peak intensity.</li>
+        <li><b>Signal metrics:</b> ASR and TEPR evaluate pre-processing before imaging.</li>
+        <li><b>Detection performance:</b> sensitivity, specificity and ROC curves over many scans with and without tumours.</li>
+      </ul>
+      <svg viewBox="0 0 260 240" role="img" aria-label="Sketch of a breast image with a tumour region, its full width at half maximum, the true location and a clutter peak" style="width:100%;max-width:340px;display:block;margin:auto">
+          <defs><radialGradient id="gT"><stop offset="0" stop-color="#a80050"/><stop offset="1" stop-color="#a80050" stop-opacity="0"/></radialGradient><radialGradient id="gC"><stop offset="0" stop-color="#f58e2f" stop-opacity="0.8"/><stop offset="1" stop-color="#f58e2f" stop-opacity="0"/></radialGradient></defs>
+          <circle cx="130" cy="125" r="100" fill="var(--bg)" stroke="var(--muted)"/>
+          <circle cx="165" cy="100" r="24" fill="url(#gT)"/><circle cx="85" cy="165" r="18" fill="url(#gC)"/>
+          <circle cx="165" cy="100" r="28" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="5 4"/>
+          <text x="165" y="62" text-anchor="middle" font-size="12" fill="var(--ink)">tumour region</text>
+          <text x="85" y="198" text-anchor="middle" font-size="12" fill="var(--muted)">clutter peak</text>
+          <circle cx="178" cy="110" r="3" fill="none" stroke="var(--accent-2)" stroke-width="2"/>
+          <line x1="181" y1="113" x2="222" y2="182" stroke="var(--accent-2)"/><text x="222" y="196" text-anchor="middle" font-size="11" fill="var(--accent-2)">true location</text>
+          <line x1="142" y1="128" x2="188" y2="128" stroke="var(--muted)"/><path d="M142 128l6-3v6zM188 128l-6-3v6z" fill="var(--muted)"/>
+          <text x="165" y="143" text-anchor="middle" font-size="11" fill="var(--muted)">FWHM</text>
+        </svg>
+    </div>
+  </section>
+
+  <section class="step" aria-labelledby="dk3">
+    <div class="step-head"><span class="step-no">Slide</span><h2 id="dk3">Open problems</h2></div>
+    <div class="panel">
+      <div class="opgrid">
+        <div class="centre">Clinical radar imaging</div>
+        <div class="op" style="grid-area:a"><b>Dense tissue</b>contrast near 1.1:1 against fibroglandular tissue</div>
+        <div class="op" style="grid-area:b"><b>Propagation model</b>patient-specific velocity and dispersion</div>
+        <div class="op" style="grid-area:d"><b>Realistic 3D validation</b>heterogeneous phantoms with ground truth</div>
+        <div class="op" style="grid-area:e"><b>Benchmarks</b>shared datasets, metrics and open software</div>
+        <div class="op" style="grid-area:f"><b>Clinical evidence</b>sensitivity and specificity in large trials</div>
+      </div>
+    </div>
+    <ul class="bul">
+      <li>Reported results are hard to compare because phantoms, scan geometries and metric definitions differ; open datasets (UM-BMID, the Galway phantom data) and open-source software (MERIT) allow comparison on the same data.</li>
+      <li>Clinical translation requires evidence from multicentre studies with many patients.</li>
+    </ul>
+  </section>
+
+  <section class="step" aria-labelledby="dk4">
+    <div class="step-head"><span class="step-no">Slide</span><h2 id="dk4">Summary</h2></div>
+    <div class="panel">
+      <ul class="bul">
+        <li>A scatterer reflects in proportion to its permittivity contrast with the surrounding tissue and to its volume; the contrast is large against fat and small against fibroglandular tissue.</li>
+        <li>Synthetic aperture radar and radar-based breast imaging both form an image by summing echoes along the delay curve of each candidate scatterer.</li>
+        <li>From the Green's function and the Born approximation, each recorded echo is a sum of delayed pulses from point scatterers; delay-and-sum aligns these echoes for each focal point and sums them.</li>
+        <li>Delay-and-sum neglects spreading, attenuation, dispersion and heterogeneity; weighting factors, MIST filters and Capon weights each restore or adapt for part of what is neglected.</li>
+        <li>Artefact removal involves a trade-off between suppressing the skin response and preserving the tumour response.</li>
+        <li>Beamformers differ in their weights, their domain and their model, and all of them depend on an accurate propagation model.</li>
+        <li>Comparable evaluation needs stated metrics, shared datasets and a validation chain from simulation to patients.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="step" aria-labelledby="s13">
+    <div class="step-head"><span class="step-no">Reference</span><h2 id="s13">Symbols</h2></div>
+    <div class="panel tablewrap">
+      <table>
+        <thead><tr><th>Symbol</th><th>Meaning</th><th>Unit</th></tr></thead>
+        <tbody>
+          <tr><td>&epsilon;<sub>r</sub></td><td>Relative permittivity: how strongly a material stores electric energy compared with vacuum</td><td>none</td></tr>
+          <tr><td>c, c<sub>0</sub></td><td>Wave speed in the medium and in vacuum; c = c<sub>0</sub>/&radic;&epsilon;<sub>r</sub></td><td>m/s</td></tr>
+          <tr><td>f, &lambda;</td><td>Frequency and wavelength; &lambda; = c/f</td><td>Hz, m</td></tr>
+          <tr><td>k, &beta;, &alpha;</td><td>Wavenumber; in a lossy medium k = &beta; &minus; j&alpha;, with &beta; the phase constant and &alpha; the attenuation constant</td><td>rad/m, Np/m</td></tr>
+          <tr><td>p(t), P(f)</td><td>Transmitted pulse and its spectrum</td><td></td></tr>
+          <tr><td>G(f, r)</td><td>Green's function: the field at r produced by a point source</td><td>1/m</td></tr>
+          <tr><td>&sigma;<sub>n</sub>, r<sub>n</sub></td><td>Reflectivity and position of point scatterer n</td><td></td></tr>
+          <tr><td>E<sup>sc</sup><sub>m</sub>(f), s<sub>m</sub>(t)</td><td>Recorded echo at antenna m, in frequency and in time</td><td></td></tr>
+          <tr><td>R, R<sub>m</sub></td><td>Distance from the antenna to a point; distance from antenna m to the focal point</td><td>m</td></tr>
+          <tr><td>&tau;<sub>m</sub>(r)</td><td>Round-trip delay 2R<sub>m</sub>/c</td><td>s</td></tr>
+          <tr><td>&Psi;<sub>m</sub>(r)</td><td>Range profile from antenna m</td><td></td></tr>
+          <tr><td>I(r)</td><td>Image value at focal point r</td><td></td></tr>
+          <tr><td>w<sub>m</sub>, W<sub>m</sub>(f)</td><td>Scalar weight and frequency-dependent filter for channel m</td><td></td></tr>
+          <tr><td>a, R, &epsilon;</td><td>Steering vector, sample covariance matrix and uncertainty bound of the Capon beamformers</td><td></td></tr>
+          <tr><td>F<sup>&minus;1</sup></td><td>Inverse Fourier transform: from frequency to time, or from wavenumber to distance</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="foot">
+    <p>The derivation and the assumptions follow C. Curtis, B. R. Lavoie and E. Fear, "An analysis of the assumptions inherent to near-field beamforming for biomedical applications," IEEE Trans. Comput. Imag., vol. 3, no. 4, pp. 953&ndash;965, 2017, doi:10.1109/TCI.2017.2756022 (Sections II&ndash;III, Appendix A). The weighted DAS, coherence factor, MIST and RCB formulations follow the review in Ch. 2 of M. A. Elahi's PhD thesis and Ch. 2 of C. Curtis's PhD thesis, which cite Bond et al. (2003) for MIST and Li, Stoica and Wang (2003) for RCB. The artefact-removal slides follow Ch. 3 and 4 of the same thesis, and cite Fig. 9 of J. Wang et al., Biomed. Signal Process. Control 88 (2024) 105598, and Fig. 2 of M. A. Elahi et al., Prog. Electromagn. Res. 141 (2013) 185&ndash;200. The history of the weighting factor follows Hagness et al. (1998), Li and Hagness (2001), Fear et al. (2002), Klemm et al. (2008, 2009) and O'Halloran et al. (2010).</p>
+    <p>All signals are computed in the browser from the stated models. The breast-model and beamformer simulations use a modulated Gaussian pulse centred at 4 GHz in a homogeneous medium of &epsilon;<sub>r</sub> = 9; the scatterer positions, attenuation values and noise are illustrative choices.</p>
+  </div>
+  <nav class="pager" aria-label="Step navigation">
+    <button id="pgPrev" type="button">&larr; Previous</button>
+    <select id="pgSel" aria-label="Go to step"></select>
+    <span class="count" id="pgCount"></span>
+    <button id="pgNext" type="button">Next &rarr;</button>
+    <button id="pgAll" type="button" aria-pressed="false">Show all</button>
+    <button id="pgPres" type="button" aria-pressed="false" title="Present full screen (P)">Present</button>
+  </nav>
+</div>
+
+<script>
+"use strict";
+/* ---------- shared helpers ---------- */
+const $ = id => document.getElementById(id);
+const PZ = { z: 1 };   // zoom of the content in present mode
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C0 = 3e8;
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function gauss(r) { let u = 0, v = 0; while (u === 0) u = r(); v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+function fit(cv, aspect, minH) {
+  const dpr = (window.devicePixelRatio || 1) * PZ.z;
+  const w = cv.clientWidth || 600;
+  const h = Math.max(minH || 0, Math.round(w * aspect));
+  cv.style.height = h + "px";
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+  const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, W: w, H: h };
+}
+function fmt(v, d) { return Number(v).toFixed(d); }
+function setRO(el, items) { el.innerHTML = items.map(([k, v]) => `<div class="ro"><span class="k">${k}</span><span class="v">${v}</span></div>`).join(""); }
+function axes(ctx, x, y, w, h, opt) {
+  const ink = css("--muted"), line = css("--line");
+  ctx.strokeStyle = line; ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, w, h);
+  if (opt && opt.zero !== undefined) { ctx.beginPath(); ctx.moveTo(x, opt.zero + 0.5); ctx.lineTo(x + w, opt.zero + 0.5); ctx.stroke(); }
+  ctx.fillStyle = ink; ctx.font = "12px " + css("--font-body");
+  if (opt && opt.xl) { ctx.textAlign = "right"; ctx.textBaseline = "top"; ctx.fillText(opt.xl, x + w - 4, y + h + (opt.ticks ? 18 : 4)); }
+  if (opt && opt.yl) { ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillText(opt.yl, x + 6, y + 4); }
+  if (opt && opt.ticks) { ctx.textAlign = "center"; ctx.textBaseline = "top"; for (const [px, lab] of opt.ticks) { ctx.fillText(lab, px, y + h + 4); ctx.beginPath(); ctx.moveTo(px + 0.5, y + h); ctx.lineTo(px + 0.5, y + h - 4); ctx.stroke(); } }
+}
+function poly(ctx, xs, ys, col, lw, dash) { ctx.strokeStyle = col; ctx.lineWidth = lw || 1.6; ctx.setLineDash(dash || []); ctx.beginPath(); for (let i = 0; i < xs.length; i++) { i ? ctx.lineTo(xs[i], ys[i]) : ctx.moveTo(xs[i], ys[i]); } ctx.stroke(); ctx.setLineDash([]); }
+function label(ctx, txt, x, y, col, align, base, size) { ctx.fillStyle = col; ctx.font = (size || 12) + "px " + css("--font-body"); ctx.textAlign = align || "left"; ctx.textBaseline = base || "alphabetic"; ctx.fillText(txt, x, y); }
+const MAP = [[0, 0, 4], [40, 11, 84], [101, 21, 110], [159, 42, 99], [212, 72, 66], [245, 125, 21], [250, 193, 39], [252, 255, 164]];
+function cmap(v) { v = Math.max(0, Math.min(1, v)) * (MAP.length - 1); const i = Math.min(MAP.length - 2, Math.floor(v)), t = v - i; const a = MAP[i], b = MAP[i + 1]; return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]; }
+function dmap(v) { v = Math.max(-1, Math.min(1, v)); return v >= 0 ? [255 - 60 * v, 255 - 200 * v, 255 - 170 * v] : [255 + 200 * v, 255 + 110 * v, 255 + 30 * v]; }
+
+/* ---------- time-domain breast model shared by steps 0, 6, 7, 9 ---------- */
+const EPS = 9, CM = C0 / Math.sqrt(EPS);          // 1e8 m/s
+const F0 = 4e9, ST = 0.07e-9;                       // modulated Gaussian
+const pulse = t => Math.exp(-t * t / (2 * ST * ST)) * Math.cos(2 * Math.PI * F0 * t);
+const DT = 5e-12, NT = 560, T0 = 0.15e-9;          // samples from -T0
+const RA = 0.06, RB = 0.05, HALF = 0.056;          // antenna ring, breast radius, image half width
+function ring(M) { const a = []; for (let i = 0; i < M; i++) { const th = 2 * Math.PI * i / M + Math.PI / 2; a.push([RA * Math.cos(th), RA * Math.sin(th)]); } return a; }
+function record(ants, scat, alpha, noise, seed) {
+  const r = rng(seed || 1);
+  return ants.map(([ax, ay]) => {
+    const s = new Float32Array(NT);
+    for (const [x, y, sig] of scat) {
+      const R = Math.hypot(x - ax, y - ay), tau = 2 * R / CM;
+      const amp = sig * Math.pow(RA / R, 2) * Math.exp(-2 * alpha * R);
+      const k0 = Math.max(0, Math.floor((tau - 0.35e-9 + T0) / DT)), k1 = Math.min(NT, Math.ceil((tau + 0.35e-9 + T0) / DT));
+      for (let k = k0; k < k1; k++) s[k] += amp * pulse(k * DT - T0 - tau);
+    }
+    if (noise) for (let k = 0; k < NT; k++) s[k] += noise * gauss(r);
+    return s;
+  });
+}
+function samp(s, t) { const u = (t + T0) / DT; const i = Math.floor(u); if (i < 0 || i >= NT - 1) return 0; const f = u - i; return s[i] * (1 - f) + s[i + 1] * f; }
+const WIN = []; for (let k = -6; k <= 6; k++) WIN.push(k * 12e-12);
+function dasImage(ants, sigs, N, opt) {
+  opt = opt || {};
+  const img = new Float32Array(N * N), M = ants.length;
+  const xm = new Float32Array(M);
+  for (let iy = 0; iy < N; iy++) for (let ix = 0; ix < N; ix++) {
+    const x = -HALF + 2 * HALF * (ix + 0.5) / N, y = HALF - 2 * HALF * (iy + 0.5) / N;
+    if (x * x + y * y > RB * RB) { img[iy * N + ix] = -1; continue; }
+    const tau = new Float32Array(M), w = new Float32Array(M);
+    for (let m = 0; m < M; m++) {
+      const R = Math.hypot(x - ants[m][0], y - ants[m][1]); tau[m] = 2 * R / CM;
+      let wm = 1; if (opt.rs) wm *= Math.pow(R / RA, 2); if (opt.att) wm *= Math.exp(2 * opt.alpha * R); w[m] = wm;
+    }
+    let e = 0, num = 0, den = 0;
+    for (const dt of WIN) {
+      let sum = 0, sq = 0;
+      for (let m = 0; m < M; m++) { const v = w[m] * samp(sigs[m], tau[m] + dt); xm[m] = v; sum += v; sq += v * v; }
+      e += sum * sum; num += sum * sum; den += M * sq;
+    }
+    if (opt.cf) e *= den > 0 ? num / den : 0;
+    img[iy * N + ix] = e;
+  }
+  return img;
+}
+function drawImage(ctx, img, N, x0, y0, S, norm) {
+  let mx = 0; for (const v of img) if (v > mx) mx = v;
+  const id = ctx.createImageData(N, N);
+  for (let i = 0; i < N * N; i++) {
+    const v = img[i];
+    let c = v < 0 ? [0, 0, 0, 0] : norm === "db" ? cmap(v > 0 ? (10 * Math.log10(v / mx) + 15) / 15 : 0) : cmap(mx ? v / mx : 0);
+    id.data[4 * i] = c[0]; id.data[4 * i + 1] = c[1]; id.data[4 * i + 2] = c[2]; id.data[4 * i + 3] = v < 0 ? 0 : 255;
+  }
+  const off = document.createElement("canvas"); off.width = N; off.height = N; off.getContext("2d").putImageData(id, 0, 0);
+  ctx.imageSmoothingEnabled = true; ctx.drawImage(off, x0, y0, S, S);
+}
+function toPx(x, y, x0, y0, S) { return [x0 + (x + HALF) / (2 * HALF) * S, y0 + (HALF - y) / (2 * HALF) * S]; }
+function drawRing(ctx, ants, x0, y0, S, active) {
+  ctx.strokeStyle = css("--muted"); ctx.lineWidth = 1; ctx.setLineDash([4, 4]); ctx.beginPath();
+  const [cx, cy] = toPx(0, 0, x0, y0, S); ctx.arc(cx, cy, RB / (2 * HALF) * S, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]);
+  ants.forEach(([ax, ay], i) => { const [px, py] = toPx(ax, ay, x0, y0, S); ctx.fillStyle = active && active(i) ? css("--accent") : css("--line"); ctx.beginPath(); ctx.arc(px, py, 4, 0, 2 * Math.PI); ctx.fill(); });
+}
+
+/* ---------- KaTeX ---------- */
+function renderTex() {
+  document.querySelectorAll(".eq[data-tex]").forEach(el => {
+    if (window.katex) { try { katex.render(el.dataset.tex, el, { displayMode: true, throwOnError: false }); } catch (e) { el.textContent = el.dataset.tex; } }
+    else el.textContent = el.dataset.tex;
+  });
+}
+
+/* ---------- Step 0: hero animation ---------- */
+const H0 = { ants: ring(16), tum: [0.022, -0.012], t0: performance.now() };
+function draw0(now) {
+  const cv = $("c0"); const nar = cv.clientWidth < 600; const { ctx, W, H } = fit(cv, nar ? 1.55 : 0.42, 260);
+  ctx.fillStyle = css("--img-bg"); ctx.fillRect(0, 0, W, H);
+  const S = nar ? W - 56 : Math.min(H - 44, W * 0.46), x0 = nar ? 28 : 24, y0 = nar ? 40 : (H - S) / 2;
+  const period = 3.2, tt = reduceMotion ? 1.9 : Math.max(0, (now - H0.t0) / 1000) % (period * 16);
+  const m = Math.floor(tt / period) % 16, ph = (tt % period) / period;
+  ctx.fillStyle = "#1d2c38"; const [cx, cy] = toPx(0, 0, x0, y0, S); ctx.beginPath(); ctx.arc(cx, cy, RB / (2 * HALF) * S, 0, 2 * Math.PI); ctx.fill();
+  const [tx, ty] = toPx(H0.tum[0], H0.tum[1], x0, y0, S);
+  const a = H0.ants[m], [axp, ayp] = toPx(a[0], a[1], x0, y0, S);
+  const dist = Math.hypot(a[0] - H0.tum[0], a[1] - H0.tum[1]);
+  const vmax = 0.11 / 0.5;                              // metres per unit phase
+  const r1 = ph * vmax, px = S / (2 * HALF);
+  ctx.lineWidth = 2;
+  if (r1 < 0.11) { ctx.strokeStyle = `rgba(69,181,216,${Math.max(0, 1 - r1 / 0.11) * 0.9})`; ctx.beginPath(); ctx.arc(axp, ayp, r1 * px, 0, 2 * Math.PI); ctx.stroke(); }
+  const r2 = r1 - dist;
+  if (r2 > 0 && r2 < dist + 0.01) { ctx.strokeStyle = `rgba(242,162,78,${0.9 * Math.max(0.15, 1 - r2 / 0.08)})`; ctx.beginPath(); ctx.arc(tx, ty, r2 * px, 0, 2 * Math.PI); ctx.stroke(); }
+  ctx.fillStyle = "#f2a24e"; ctx.beginPath(); ctx.arc(tx, ty, 5, 0, 2 * Math.PI); ctx.fill();
+  H0.ants.forEach(([x, y], i) => { const [p, q] = toPx(x, y, x0, y0, S); ctx.fillStyle = i === m ? "#e2589a" : "#55656f"; ctx.beginPath(); ctx.arc(p, q, i === m ? 6 : 4, 0, 2 * Math.PI); ctx.fill(); });
+  label(ctx, "tumour", tx + 9, ty + 4, "#f2a24e", "left", "alphabetic", 12);
+  label(ctx, "antenna " + (m + 1) + " of 16", axp, ayp + (a[1] > 0 ? -12 : 20), "#e2589a", "center", "alphabetic", 12);
+  // recorded trace
+  const gx = nar ? 16 : x0 + S + 30, gw = nar ? W - 32 : W - gx - 16, gy = nar ? y0 + S + 44 : H * 0.3, gh = nar ? H - (y0 + S + 44) - 30 : H * 0.4;
+  if (gw > 80) {
+    ctx.strokeStyle = "#2c3a44"; ctx.strokeRect(gx, gy, gw, gh);
+    label(ctx, "signal recorded by antenna " + (m + 1), gx, gy - 8, "#9ba5ad", "left", "alphabetic", 12);
+    label(ctx, "time", gx + gw, gy + gh + 16, "#9ba5ad", "right", "alphabetic", 12);
+    const tEcho = 2 * dist / vmax, tNow = ph;
+    const xs = [], ys = [];
+    for (let i = 0; i <= 300; i++) {
+      const u = i / 300; if (u > tNow) break;
+      const v = 0.9 * Math.exp(-Math.pow((u - 0.012) / 0.012, 2)) * Math.cos(2 * Math.PI * (u - 0.012) / 0.02) + 0.45 * Math.exp(-Math.pow((u - tEcho) / 0.012, 2)) * Math.cos(2 * Math.PI * (u - tEcho) / 0.02);
+      xs.push(gx + u * gw); ys.push(gy + gh / 2 - v * gh / 2);
+    }
+    if (xs.length > 1) poly(ctx, xs, ys, "#45b5d8", 1.6);
+    if (tNow > tEcho) label(ctx, "tumour echo", gx + tEcho * gw, gy + gh + 16, "#f2a24e", "center", "alphabetic", 12);
+    label(ctx, "transmitted pulse", gx + 4, gy + gh + 16, "#45b5d8", "left", "alphabetic", 12);
+  }
+  if (!reduceMotion) requestAnimationFrame(draw0);
+}
+
+/* ---------- Step 1 ---------- */
+function draw1() {
+  const er = +$("s1e").value, f = +$("s1f").value * 1e9;
+  $("o1e").textContent = fmt(er, 1); $("o1f").textContent = fmt(f / 1e9, 1) + " GHz";
+  const c = C0 / Math.sqrt(er), lam = c / f, k = 2 * Math.PI / lam;
+  setRO($("r1"), [["c", (c / 1e8).toFixed(2) + " × 10⁸ m/s"], ["λ", (lam * 1000).toFixed(1) + " mm"], ["k", k.toFixed(0) + " rad/m = " + (k * 180 / Math.PI / 1000).toFixed(1) + "° per mm"], ["λ in vacuum", (C0 / f * 1000).toFixed(1) + " mm"]]);
+  const { ctx, W, H } = fit($("c1"), 0.3, 190);
+  ctx.clearRect(0, 0, W, H);
+  const span = 0.15, x0 = 110, w = W - x0 - 16;   // 150 mm shown
+  const rows = [["vacuum", C0 / f, css("--muted")], ["εr = " + fmt(er, 1), lam, css("--t2")]];
+  rows.forEach(([nm, L, col], r) => {
+    const yc = H * (0.28 + 0.44 * r), A = H * 0.13;
+    label(ctx, nm, 8, yc + 4, col, "left", "alphabetic", 13);
+    ctx.strokeStyle = css("--line"); ctx.beginPath(); ctx.moveTo(x0, yc); ctx.lineTo(x0 + w, yc); ctx.stroke();
+    const xs = [], ys = []; for (let i = 0; i <= 600; i++) { const d = span * i / 600; xs.push(x0 + i / 600 * w); ys.push(yc - A * Math.cos(2 * Math.PI * d / L)); }
+    poly(ctx, xs, ys, col, 2);
+    const Lp = L / span * w;
+    if (Lp < w) { ctx.strokeStyle = css("--t3"); ctx.lineWidth = 1.5; const yb = yc - A - 8; ctx.beginPath(); ctx.moveTo(x0, yb); ctx.lineTo(x0 + Lp, yb); ctx.moveTo(x0, yb - 4); ctx.lineTo(x0, yb + 4); ctx.moveTo(x0 + Lp, yb - 4); ctx.lineTo(x0 + Lp, yb + 4); ctx.stroke(); label(ctx, "λ = " + (L * 1000).toFixed(1) + " mm", x0 + Lp + 6, yb + 4, css("--t3"), "left", "alphabetic", 12); }
+  });
+  label(ctx, "distance (150 mm shown)", x0 + w, H - 6, css("--muted"), "right", "alphabetic", 12);
+}
+
+
+/* ---------- Step 1b: phase clocks ---------- */
+const S1B = { x: 0.03, t0: performance.now(), drag: false };
+function draw1b(now) {
+  const er = +$("s1e").value, f = +$("s1f").value * 1e9, c = C0 / Math.sqrt(er), lam = c / f, k = 2 * Math.PI / lam;
+  const cv = $("c1b"), nar = cv.clientWidth < 600;
+  const { ctx, W, H } = fit(cv, nar ? 1.2 : 0.32, 270);
+  ctx.clearRect(0, 0, W, H);
+  const span = 0.1, N = 21, x0 = 22;
+  const w = nar ? W - 44 : W - 44 - 190;
+  S1B.geo = { x0, w, span };
+  const ph0 = reduceMotion ? 0.6 : Math.max(0, (now - S1B.t0) / 1000) * 2 * Math.PI / 4;   // one turn per 4 s (slowed down)
+  const r = Math.max(5, Math.min(13, w / (N - 1) / 2 - 1.5)), yC = 26;
+  const yW = yC + r + 26, A = nar ? H * 0.11 : (H - yW - 62) / 2, yZ = yW + A;
+  const X = x => x0 + x / span * w;
+  // wave formed by the hands
+  const xs = [], ys = []; for (let i = 0; i <= 400; i++) { const x = span * i / 400; xs.push(X(x)); ys.push(yZ - A * Math.cos(ph0 - k * x)); }
+  ctx.strokeStyle = css("--line"); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x0, yZ + 0.5); ctx.lineTo(x0 + w, yZ + 0.5); ctx.stroke();
+  poly(ctx, xs, ys, css("--t2"), 2);
+  for (let i = 0; i < N; i++) {
+    const x = span * i / (N - 1), px = X(x), th = ph0 - k * x;
+    const inside = x <= S1B.x + 1e-9;
+    ctx.strokeStyle = css("--line"); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(px, yC, r, 0, 2 * Math.PI); ctx.stroke();
+    ctx.strokeStyle = i === 0 ? css("--accent") : inside ? css("--t3") : css("--muted"); ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(px, yC); ctx.lineTo(px + r * Math.sin(th), yC - r * Math.cos(th)); ctx.stroke();
+    ctx.fillStyle = ctx.strokeStyle; ctx.beginPath(); ctx.arc(px, yZ - A * Math.cos(th), 3, 0, 2 * Math.PI); ctx.fill();
+  }
+  label(ctx, "source", x0, yC - r - 6, css("--accent"), "left", "alphabetic", 12);
+  label(ctx, "distance R from the source (0 to 100 mm)", x0 + w, yZ + A + 50, css("--muted"), "right", "alphabetic", 12);
+  // wavelength bar
+  const Lp = lam / span * w;
+  if (Lp < w) { const yb = yZ + A + 28; ctx.strokeStyle = css("--t3"); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x0, yb); ctx.lineTo(x0 + Lp, yb); ctx.moveTo(x0, yb - 4); ctx.lineTo(x0, yb + 4); ctx.moveTo(x0 + Lp, yb - 4); ctx.lineTo(x0 + Lp, yb + 4); ctx.stroke(); label(ctx, "λ: one full turn of lag", x0 + Lp + 6, yb + 4, css("--t3"), "left", "alphabetic", 12); }
+  // marker
+  const mx = X(S1B.x);
+  ctx.strokeStyle = css("--t3"); ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(mx, yC - r - 2); ctx.lineTo(mx, yZ + A + 6); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = css("--t3"); ctx.beginPath(); ctx.moveTo(mx - 6, yZ + A + 14); ctx.lineTo(mx + 6, yZ + A + 14); ctx.lineTo(mx, yZ + A + 4); ctx.fill();
+  // dial of accumulated lag
+  const lag = k * S1B.x, deg = lag * 180 / Math.PI, turns = lag / (2 * Math.PI);
+  const dr = nar ? 46 : 58, dx = nar ? W / 2 : x0 + w + 110, dy = nar ? yZ + A + 64 + dr + 20 : H / 2 + 6;
+  ctx.strokeStyle = css("--line"); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(dx, dy, dr, 0, 2 * Math.PI); ctx.stroke();
+  const full = Math.floor(turns), rem = lag - full * 2 * Math.PI;
+  for (let q = 0; q < Math.min(full, 6); q++) { ctx.strokeStyle = css("--t3") + "55"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(dx, dy, dr - 6 - 5 * q, 0, 2 * Math.PI); ctx.stroke(); }
+  ctx.strokeStyle = css("--t3"); ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(dx, dy, dr - 6 - 5 * Math.min(full, 6), -Math.PI / 2, -Math.PI / 2 - rem, true); ctx.stroke();
+  ctx.strokeStyle = css("--t3"); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(dx, dy); ctx.lineTo(dx + dr * Math.sin(-lag), dy - dr * Math.cos(-lag)); ctx.stroke();
+  ctx.strokeStyle = css("--accent"); ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(dx, dy); ctx.lineTo(dx, dy - dr); ctx.stroke(); ctx.setLineDash([]);
+  label(ctx, "lag at the marker", dx, dy - dr - 10, css("--muted"), "center", "alphabetic", 12);
+  label(ctx, "R = " + (S1B.x * 1000).toFixed(0) + " mm", dx, dy + dr + 18, css("--ink"), "center", "alphabetic", 13);
+  label(ctx, "kR = " + deg.toFixed(0) + "° = " + turns.toFixed(2) + " turns", dx, dy + dr + 34, css("--t3"), "center", "alphabetic", 13);
+  S1B.k = k;
+}
+function loop1b(now) { draw1b(now); if (!reduceMotion) requestAnimationFrame(loop1b); }
+function pick1b(e) { const b = e.currentTarget.getBoundingClientRect(), g = S1B.geo; const x = ((e.clientX - b.left) / PZ.z - g.x0) / g.w * g.span; if (x >= 0 && x <= g.span) { S1B.x = Math.round(x * 1000) / 1000; if (reduceMotion) draw1b(performance.now()); } }
+
+/* ---------- Step 2 ---------- */
+function draw2() {
+  const tw = +$("s2w").value * 1e-12; $("o2w").textContent = (tw * 1e12).toFixed(0) + " ps";
+  const { ctx, W, H } = fit($("c2"), 0.42, 280);
+  ctx.clearRect(0, 0, W, H);
+  const x0 = 46, w = W - x0 - 16, h1 = H * 0.42, y1 = 10, y2 = y1 + h1 + 34, h2 = H - y2 - 40;
+  const p = t => -(t / tw) * Math.exp(-t * t / (2 * tw * tw)) * Math.exp(0.5);  // differentiated Gaussian, peak 1
+  const Pm = f => { const u = 2 * Math.PI * f * tw; return u * Math.exp(-u * u / 2) * Math.exp(0.5); };
+  const T = 0.6e-9;
+  axes(ctx, x0, y1, w, h1, { zero: y1 + h1 / 2, xl: "time t (−0.6 to 0.6 ns)", yl: "pulse p(t)" });
+  [1, 2, 3].forEach((q, i) => {
+    const fq = q / (2 * Math.PI * tw) * 0.6, a = Pm(fq), xs = [], ys = [];
+    for (let k = 0; k <= 400; k++) { const t = -T + 2 * T * k / 400; xs.push(x0 + k / 400 * w); ys.push(y1 + h1 / 2 - 0.42 * h1 * a * Math.sin(2 * Math.PI * fq * t) * 0.6); }
+    poly(ctx, xs, ys, [css("--t3"), css("--t5"), css("--t4")][i] + "80", 1);
+  });
+  const xs = [], ys = []; for (let k = 0; k <= 400; k++) { const t = -T + 2 * T * k / 400; xs.push(x0 + k / 400 * w); ys.push(y1 + h1 / 2 - 0.42 * h1 * p(t)); }
+  poly(ctx, xs, ys, css("--t2"), 2.2);
+  const FM = 15e9;
+  axes(ctx, x0, y2, w, h2, { xl: "frequency f (GHz)", yl: "|P(f)|", ticks: [0, 3, 6, 9, 12, 15].map(g => [x0 + g / 15 * w, String(g)]) });
+  const fx = [], fy = []; for (let k = 0; k <= 300; k++) { const f = FM * k / 300; fx.push(x0 + k / 300 * w); fy.push(y2 + h2 - 0.9 * h2 * Pm(f)); }
+  ctx.fillStyle = css("--t4") + "30"; ctx.beginPath(); ctx.moveTo(x0, y2 + h2); fx.forEach((x, i) => ctx.lineTo(x, fy[i])); ctx.lineTo(x0 + w, y2 + h2); ctx.fill();
+  poly(ctx, fx, fy, css("--t4"), 2);
+  [1, 2, 3].forEach((q, i) => { const fq = q / (2 * Math.PI * tw) * 0.6; if (fq < FM) { const X = x0 + fq / FM * w; ctx.fillStyle = [css("--t3"), css("--t5"), css("--t4")][i]; ctx.beginPath(); ctx.arc(X, y2 + h2 - 0.9 * h2 * Pm(fq), 4, 0, 2 * Math.PI); ctx.fill(); } });
+}
+
+/* ---------- Step 3 ---------- */
+function draw3() {
+  const al = +$("s3a").value; $("o3a").textContent = al + " Np/m";
+  const loss = R => Math.exp(-al * R);
+  setRO($("r3"), [["wavelength in the medium", "25 mm (εr = 9, 4 GHz)"], ["loss factor exp(−αR) at R = 100 mm", loss(0.1).toFixed(3) + "  (" + (20 * Math.log10(loss(0.1))).toFixed(1) + " dB)"], ["round trip, 2R = 200 mm", (40 * Math.log10(loss(0.1))).toFixed(1) + " dB"]]);
+  const nar = $("c3").clientWidth < 600; const { ctx, W, H } = fit($("c3"), nar ? 1.9 : 0.42, 300);
+  ctx.clearRect(0, 0, W, H);
+  const S = nar ? W - 16 : Math.min(H - 16, W * 0.42), x0 = 8, y0 = nar ? 8 : (H - S) / 2;
+  ctx.fillStyle = css("--img-bg"); ctx.fillRect(x0, y0, S, S);
+  const id = ctx.createImageData(140, 140); const L = 0.025;
+  for (let j = 0; j < 140; j++) for (let i = 0; i < 140; i++) {
+    const x = (i - 10) / 130 * 0.1, y = (j - 70) / 130 * 0.1, R = Math.max(0.002, Math.hypot(x, y));
+    const v = Math.cos(2 * Math.PI * R / L) * 0.004 / R * loss(R); const c = dmap(Math.max(-1, Math.min(1, v)));
+    const q = 4 * (j * 140 + i); id.data[q] = c[0]; id.data[q + 1] = c[1]; id.data[q + 2] = c[2]; id.data[q + 3] = 255;
+  }
+  const off = document.createElement("canvas"); off.width = 140; off.height = 140; off.getContext("2d").putImageData(id, 0, 0); ctx.drawImage(off, x0, y0, S, S);
+  ctx.fillStyle = css("--accent"); ctx.beginPath(); ctx.arc(x0 + 10 / 140 * S, y0 + S / 2, 5, 0, 2 * Math.PI); ctx.fill();
+  label(ctx, "antenna", x0 + 16 / 140 * S, y0 + S / 2 - 10, "#1c2226", "left", "alphabetic", 12);
+  const gx = nar ? 12 : x0 + S + 50, gw = nar ? W - 24 : W - gx - 16, gy = nar ? y0 + S + 16 : y0 + 4, gh = nar ? H - (y0 + S + 16) - 30 : S - 30;
+  if (gw > 100) {
+    const h1 = gh * 0.52, h2 = gh - h1 - 30, g2 = gy + h1 + 30;
+    axes(ctx, gx, gy, gw, h1, { zero: gy + h1 * 0.55, xl: "", yl: "" });
+    const z = gy + h1 * 0.55, A = h1 * 0.45;
+    const xs = [], yr = [], ym = [], yn = [], ylm = [], yln = [], d1 = [], d2 = [];
+    const RX = R => gx + (R - 0.004) / 0.1 * gw, DB = v => g2 + h2 * Math.min(1, -v / 60);
+    for (let k = 0; k <= 400; k++) {
+      const R = 0.1 * k / 400 + 0.004; xs.push(RX(R));
+      const a = 0.004 / R, al2 = a * loss(R);
+      yr.push(z - A * al2 * Math.cos(2 * Math.PI * R / L));
+      ym.push(z - A * a); yn.push(z + A * a); ylm.push(z - A * al2); yln.push(z + A * al2);
+      d1.push(DB(20 * Math.log10(a))); d2.push(DB(20 * Math.log10(al2)));
+    }
+    poly(ctx, xs, ym, css("--t1"), 1.4, [5, 4]); poly(ctx, xs, yn, css("--t1"), 1.4, [5, 4]);
+    if (al > 0) { poly(ctx, xs, ylm, css("--t3"), 1.8); poly(ctx, xs, yln, css("--t3"), 1.8); }
+    poly(ctx, xs, yr, css("--t2"), 1.8);
+    label(ctx, "real part of G: phase turns by βR", gx + 8, gy + 16, css("--t2"), "left", "alphabetic", 12);
+    label(ctx, "dashed: spreading only", gx + gw - 8, gy + (nar ? 31 : 16), css("--t1"), "right", "alphabetic", 12);
+    if (al > 0) label(ctx, "solid: spreading and loss", gx + gw - 8, gy + (nar ? 46 : 31), css("--t3"), "right", "alphabetic", 12);
+    axes(ctx, gx, g2, gw, h2, { xl: "distance R (mm)", yl: "", ticks: [4, 24, 44, 64, 84, 104].map(m => [RX(m / 1000), String(m)]) });
+    label(ctx, "amplitude in dB (0 to \u221260)", gx + gw - 8, g2 + 16, css("--muted"), "right", "alphabetic", 12);
+    poly(ctx, xs, d1, css("--t1"), 1.6, [5, 4]);
+    if (al > 0) poly(ctx, xs, d2, css("--t3"), 1.8);
+    if (al > 0) { const Xe = RX(0.104); ctx.strokeStyle = css("--t3"); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(Xe - 6, d1[400]); ctx.lineTo(Xe - 6, d2[400]); ctx.stroke(); label(ctx, "loss " + (20 * Math.log10(loss(0.104))).toFixed(1) + " dB", Xe - 10, (d1[400] + d2[400]) / 2 + 4, css("--t3"), "right", "alphabetic", 12); }
+  }
+}
+
+/* ---------- Step 4 and 5: frequency-domain range model ---------- */
+const S5 = { er: 2.5, R: [0.02, 0.03, 0.06], tp: 40e-12 };
+function spectrumP(f) { const u = 2 * Math.PI * f * S5.tp; return u * Math.exp(-u * u / 2) * Math.exp(0.5); } // |P|, phase j
+function draw4() {
+  const sg = ["s4a", "s4b", "s4c"].map(id => +$(id).value); ["o4a", "o4b", "o4c"].forEach((o, i) => $(o).textContent = fmt(sg[i], 2));
+  const { ctx, W, H } = fit($("c4"), 0.5, 340);
+  ctx.clearRect(0, 0, W, H);
+  const x0 = 60, w = W - x0 - 20, Rmax = 0.07, gy = 34;
+  const X = R => x0 + R / Rmax * w;
+  ctx.strokeStyle = css("--line"); ctx.beginPath(); ctx.moveTo(x0, gy + 20); ctx.lineTo(x0 + w, gy + 20); ctx.stroke();
+  ctx.fillStyle = css("--accent"); ctx.beginPath(); ctx.moveTo(x0 - 26, gy + 6); ctx.lineTo(x0 - 6, gy + 20); ctx.lineTo(x0 - 26, gy + 34); ctx.fill();
+  label(ctx, "antenna", x0 - 6, gy + 2, css("--accent"), "right", "alphabetic", 12);
+  const cols = [css("--t3"), css("--t5"), css("--t4")];
+  S5.R.forEach((R, n) => {
+    ctx.fillStyle = cols[n]; ctx.beginPath(); ctx.arc(X(R), gy + 20, 3 + 9 * sg[n], 0, 2 * Math.PI); ctx.fill();
+    label(ctx, (R * 1000) + " mm", X(R), gy - 2 - (W < 600 && n === 1 ? 14 : 0), cols[n], "center", "alphabetic", 12);
+    ctx.strokeStyle = cols[n]; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(x0, gy + 46 + 7 * n); ctx.lineTo(X(R), gy + 46 + 7 * n); ctx.stroke(); ctx.setLineDash([]);
+  });
+  {
+    const X3 = X(S5.R[2]), ya = gy + 76, yb = gy + 96, ink = css("--ink");
+    const arrow = (xa, xb, y, col) => { ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(xa, y); ctx.lineTo(xb, y); ctx.stroke(); const d = xb > xa ? -1 : 1; ctx.beginPath(); ctx.moveTo(xb, y); ctx.lineTo(xb + 8 * d, y - 4); ctx.lineTo(xb + 8 * d, y + 4); ctx.fill(); };
+    arrow(x0, X3 - 10, ya, css("--t2"));
+    label(ctx, "incident field: P(f) \u00d7 G", x0 + 8, ya - 5, css("--t2"), "left", "alphabetic", 12);
+    arrow(X3 - 10, x0, yb, css("--t4"));
+    label(ctx, "return: \u00d7 G", x0 + 8, yb + 15, css("--t4"), "left", "alphabetic", 12);
+    label(ctx, "\u00d7 \u03c3\u2099", X3 - 4, (ya + yb) / 2 + 4, ink, "left", "alphabetic", 12);
+  }
+  // time signal
+  const c = C0 / Math.sqrt(S5.er), ty = gy + 126, th = H - ty - 42, tmax = 0.8e-9;
+  axes(ctx, x0, ty, w, th, { zero: ty + th / 2, xl: "time t (0 to 0.8 ns)", ticks: [], yl: "recorded s(t) = inverse transform of Eˢᶜ(f)" });
+  const Nf = 300, fmax = 14e9;
+  const trace = w => { const v = new Float64Array(401); for (let k = 0; k <= 400; k++) {
+    const t = tmax * k / 400; let s = 0;
+    for (let q = 1; q <= Nf; q++) { const f = fmax * q / Nf, kk = 2 * Math.PI * f / c, P = spectrumP(f);
+      for (let n = 0; n < 3; n++) { if (!w[n]) continue; const R = S5.R[n]; const ph = 2 * Math.PI * f * t - 2 * kk * R + Math.PI / 2; s += w[n] * P * Math.cos(ph) / Math.pow(4 * Math.PI * R, 2); } }
+    v[k] = s; } return v; };
+  const vals = trace(sg);
+  if (!S5.ref) S5.ref = Math.max(...trace([1, 0, 0]).map(Math.abs)) * 1.05;
+  const ref = S5.ref;
+  const xs = [], ys = []; for (let k = 0; k <= 400; k++) { xs.push(x0 + k / 400 * w); ys.push(ty + th / 2 - (th / 2) * vals[k] / ref); }
+  poly(ctx, xs, ys, css("--t2"), 1.8);
+  S5.R.forEach((R, n) => { const tx = x0 + (2 * R / c) / tmax * w; label(ctx, "2R/c", tx, ty + th + 16, cols[n], "center", "alphabetic", 12); });
+}
+function draw5() {
+  const dec = $("b5d").getAttribute("aria-pressed") === "true", rs = $("b5r").getAttribute("aria-pressed") === "true";
+  const fmax = +$("s5f").value * 1e9; $("o5f").textContent = fmt(fmax / 1e9, 1) + " GHz";
+  const sg = [0.2, 0.5, 0.8], c = C0 / Math.sqrt(S5.er), Nf = 240;
+  setRO($("r5"), [["range resolution c/(2B)", (c / (2 * fmax) * 1000).toFixed(1) + " mm"], ["band B", "0 to " + fmt(fmax / 1e9, 1) + " GHz"]]);
+  const { ctx, W, H } = fit($("c5"), 0.36, 230);
+  ctx.clearRect(0, 0, W, H);
+  const x0 = 46, w = W - x0 - 16, y0 = 12, h = H - y0 - 42, rmax = 0.08, zero = y0 + h * 0.62;
+  axes(ctx, x0, y0, w, h, { zero, xl: "distance r from the antenna (mm)", yl: "Ψ(r)", ticks: [0, 20, 40, 60, 80].map(m => [x0 + m / 80 * w, String(m)]) });
+  const scale = h * 0.55;
+  const cols = [css("--t3"), css("--t5"), css("--t4")];
+  S5.R.forEach((R, n) => { const X = x0 + R / rmax * w; ctx.strokeStyle = cols[n]; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(X, zero); ctx.lineTo(X, zero - sg[n] * scale); ctx.stroke(); ctx.fillStyle = cols[n]; ctx.beginPath(); ctx.arc(X, zero - sg[n] * scale, 4, 0, 2 * Math.PI); ctx.fill(); });
+  const xs = [], ys = [], Rref = 0.04; let pk = [];
+  for (let k = 0; k <= 500; k++) {
+    const r = 0.001 + rmax * k / 500; let s = 0;
+    for (let q = 0; q < Nf; q++) { const f = fmax * (q + 0.5) / Nf, kr = 2 * 2 * Math.PI * f / c, P = dec ? 1 : spectrumP(f);
+      for (let n = 0; n < 3; n++) { const R = S5.R[n]; const ph = kr * (r - R) + (dec ? 0 : Math.PI / 2); s += sg[n] * P * Math.cos(ph) / Math.pow(4 * Math.PI * R, 2); } }
+    s = s / Nf * Math.pow(4 * Math.PI * (rs ? r : Rref), 2);
+    xs.push(x0 + (r / rmax) * w); ys.push(zero - Math.max(-1.6, Math.min(1.6, s)) * scale);
+  }
+  poly(ctx, xs, ys, css("--t2"), 1.8);
+  label(ctx, "stems: true σₙ", x0 + w - 8, y0 + 16, css("--muted"), "right", "alphabetic", 12);
+  label(ctx, dec ? "pulse removed" : "pulse kept: each scatterer sits at a zero crossing", x0 + w - 8, y0 + 32, css("--t2"), "right", "alphabetic", 12);
+  label(ctx, rs ? "spreading compensated" : "spreading not compensated: distant peaks too small", x0 + w - 8, y0 + 48, css("--t1"), "right", "alphabetic", 12);
+}
+
+/* ---------- Step 6 ---------- */
+const S6 = { ants: ring(16), m: 4, tum: [[0.018, 0.012, 1]], fp: [0.018, 0.012] };
+S6.sig = record(S6.ants, S6.tum, 0, 0);
+function draw6() {
+  const cv = $("c6"); const nar = cv.clientWidth < 600; const { ctx, W, H } = fit(cv, nar ? 1.55 : 0.44, 280);
+  ctx.clearRect(0, 0, W, H);
+  const S = nar ? W - 44 : Math.min(H - 40, W * 0.48), x0 = 22, y0 = nar ? 22 : (H - S) / 2;
+  S6.geo = { x0, y0, S };
+  const N = 120, img = new Float32Array(N * N), a = S6.ants[S6.m], s = S6.sig[S6.m];
+  for (let iy = 0; iy < N; iy++) for (let ix = 0; ix < N; ix++) { const x = -HALF + 2 * HALF * (ix + 0.5) / N, y = HALF - 2 * HALF * (iy + 0.5) / N; if (x * x + y * y > RB * RB) { img[iy * N + ix] = -1; continue; } img[iy * N + ix] = samp(s, 2 * Math.hypot(x - a[0], y - a[1]) / CM); }
+  // signed display: shift so that -1 sentinel stays transparent
+  const id = ctx.createImageData(N, N); let mx = 0; for (const v of img) if (v !== -1 && Math.abs(v) > mx) mx = Math.abs(v);
+  for (let i = 0; i < N * N; i++) { const v = img[i]; const q = 4 * i; if (v === -1) { id.data[q + 3] = 0; continue; } const c = dmap(v / mx); id.data[q] = c[0]; id.data[q + 1] = c[1]; id.data[q + 2] = c[2]; id.data[q + 3] = 255; }
+  const off = document.createElement("canvas"); off.width = N; off.height = N; off.getContext("2d").putImageData(id, 0, 0); ctx.drawImage(off, x0, y0, S, S);
+  drawRing(ctx, S6.ants, x0, y0, S, i => i === S6.m);
+  const [fx, fy] = toPx(S6.fp[0], S6.fp[1], x0, y0, S), [apx, apy] = toPx(a[0], a[1], x0, y0, S);
+  const R = Math.hypot(S6.fp[0] - a[0], S6.fp[1] - a[1]);
+  ctx.save(); ctx.beginPath(); ctx.rect(x0 - 18, y0 - 18, S + 36, S + 36); ctx.clip(); ctx.strokeStyle = css("--t2"); ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.arc(apx, apy, R / (2 * HALF) * S, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+  ctx.beginPath(); ctx.moveTo(apx, apy); ctx.lineTo(fx, fy); ctx.stroke();
+  ctx.fillStyle = css("--t2"); ctx.beginPath(); ctx.arc(fx, fy, 6, 0, 2 * Math.PI); ctx.fill(); ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke();
+  const [tx, ty] = toPx(S6.tum[0][0], S6.tum[0][1], x0, y0, S); ctx.strokeStyle = "#111"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(tx - 5, ty - 5); ctx.lineTo(tx + 5, ty + 5); ctx.moveTo(tx + 5, ty - 5); ctx.lineTo(tx - 5, ty + 5); ctx.stroke();
+  const tau = 2 * R / CM;
+  const gx = nar ? 12 : x0 + S + 40, gw = nar ? W - 24 : W - gx - 14, gy = nar ? y0 + S + 36 : y0 + 8, gh = nar ? H - (y0 + S + 36) - 30 : S - 40;
+  if (gw > 90) {
+    axes(ctx, gx, gy, gw, gh, { zero: gy + gh / 2, xl: "time t (0 to 2.4 ns)", yl: "sₘ(t), antenna " + (S6.m + 1) });
+    const xs = [], ys = [], tm = 2.4e-9; for (let k = 0; k <= 500; k++) { const t = tm * k / 500; xs.push(gx + k / 500 * gw); ys.push(gy + gh / 2 - 0.45 * gh * samp(s, t) / mx); }
+    poly(ctx, xs, ys, css("--ink"), 1.4);
+    const X = gx + tau / tm * gw, v = samp(s, tau);
+    ctx.strokeStyle = css("--t2"); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X, gy); ctx.lineTo(X, gy + gh); ctx.stroke();
+    ctx.fillStyle = css("--t2"); ctx.beginPath(); ctx.arc(X, gy + gh / 2 - 0.45 * gh * v / mx, 5, 0, 2 * Math.PI); ctx.fill();
+    label(ctx, "τₘ(r)", X + 5, gy - 4, css("--t2"), "left", "alphabetic", 12);
+    setRO($("r6"), [["distance |r − rₘ|", (R * 1000).toFixed(1) + " mm"], ["delay τₘ(r)", (tau * 1e9).toFixed(3) + " ns"], ["sample sₘ(τₘ)", (v / mx).toFixed(2)]]);
+  }
+}
+function pickXY(ev, geo) { const cv = ev.currentTarget, b = cv.getBoundingClientRect(); const px = (ev.clientX - b.left) / PZ.z, py = (ev.clientY - b.top) / PZ.z; const x = (px - geo.x0) / geo.S * 2 * HALF - HALF, y = HALF - (py - geo.y0) / geo.S * 2 * HALF; return [x, y]; }
+function inside(x, y) { return x * x + y * y < (RB - 0.003) * (RB - 0.003); }
+
+/* ---------- Step 7 ---------- */
+const S7 = { all: ring(48), tum: [0.018, 0.012], timer: null, NS: 110 };   // NS: resolution of the signed panel
+function sig7() { S7.sig = record(S7.all, [[S7.tum[0], S7.tum[1], 1]], 0, 0); }
+sig7();
+function draw7() {
+  const M = +$("s7M").value; $("o7M").textContent = M;
+  const idx = []; for (let i = 0; i < M; i++) idx.push(Math.round(i * 48 / M) % 48);
+  const ants = idx.map(i => S7.all[i]), sigs = idx.map(i => S7.sig[i]);
+  const cv = $("c7"), W0 = cv.clientWidth || 600, nar = W0 < 600;
+  // layout: title band, ring margin, image square, ring margin, colour bar band; legend line at the bottom
+  const TT = 24, CB = 40, LG = 26;
+  let S, m;
+  if (nar) { S = Math.min(420, (W0 - 16) / 1.1); }
+  else { S = Math.min(400, (W0 - 60) / 2 / 1.1); }
+  m = Math.round(S * (RA - HALF) / (2 * HALF)) + 8;
+  const ph = TT + m + S + m + CB;                     // height of one panel block
+  const Hn = nar ? 2 * ph + 10 + LG : ph + LG;
+  const { ctx, W, H } = fit(cv, Hn / W0, 0);
+  ctx.clearRect(0, 0, W, H);
+  let geoL, geoR;
+  if (nar) { const x0 = (W - S) / 2; geoL = { x0, y0: TT + m, S }; geoR = { x0, y0: ph + 10 + TT + m, S }; }
+  else { const gap = Math.max(40, (W - 2 * S) / 3); const xl = (W - 2 * S - gap) / 2; geoL = { x0: xl, y0: TT + m, S }; geoR = { x0: xl + S + gap, y0: TT + m, S }; }
+  S7.geos = [geoL, geoR]; S7.geo = geoR;
+  const N = 110;
+  const sig = sumImage(ants, sigs, S7.NS), img = dasImage(ants, sigs, N, {});
+  const muted = css("--muted");
+  const panel = (g, title) => {
+    ctx.fillStyle = css("--img-bg"); ctx.beginPath(); const [cx, cy] = toPx(0, 0, g.x0, g.y0, g.S); ctx.arc(cx, cy, RB / (2 * HALF) * g.S, 0, 2 * Math.PI); ctx.fill();
+    label(ctx, title, g.x0 + g.S / 2, g.y0 - m - 6, css("--ink") || muted, "center", "alphabetic", 13);
+  };
+  const finish = g => {
+    drawRing(ctx, S7.all, g.x0, g.y0, g.S, i => idx.includes(i));
+    const [tx, ty] = toPx(S7.tum[0], S7.tum[1], g.x0, g.y0, g.S); ctx.strokeStyle = "#45b5d8"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(tx, ty, 9, 0, 2 * Math.PI); ctx.stroke();
+  };
+  const bar = (g, f, labs) => {
+    const bw = Math.min(200, g.S * 0.7), bx = g.x0 + (g.S - bw) / 2, by = g.y0 + g.S + m + 4;
+    for (let i = 0; i < bw; i++) { const c = f(i / (bw - 1)); ctx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`; ctx.fillRect(bx + i, by, 1.5, 10); }
+    ctx.strokeStyle = css("--line"); ctx.lineWidth = 1; ctx.strokeRect(bx + 0.5, by + 0.5, bw, 10);
+    label(ctx, labs[0], bx, by + 24, muted, "left", "alphabetic", 12);
+    if (labs.length === 3) label(ctx, labs[1], bx + bw / 2, by + 24, muted, "center", "alphabetic", 12);
+    label(ctx, labs[labs.length - 1], bx + bw, by + 24, muted, "right", "alphabetic", 12);
+  };
+  panel(geoL, "sum: (1/M) Σ sₘ(τₘ)"); drawSigned(ctx, sig, S7.NS, geoL.x0, geoL.y0, geoL.S); finish(geoL); bar(geoL, u => dmap(2 * u - 1), ["−max", "0", "+max"]);
+  panel(geoR, "energy: ∫ [Σ sₘ]² dt"); drawImage(ctx, img, N, geoR.x0, geoR.y0, geoR.S); finish(geoR); bar(geoR, cmap, ["0", "max"]);
+  const ly = H - 9;
+  ctx.font = "13px " + css("--font-body"); ctx.textBaseline = "alphabetic";
+  const t1 = "blue circle: true scatterer", t2 = "  ·  ", t3 = "pink dots: antennas used";
+  const w1 = ctx.measureText(t1).width, w2 = ctx.measureText(t2).width, w3 = ctx.measureText(t3).width;
+  let lx = (W - w1 - w2 - w3) / 2;
+  label(ctx, t1, lx, ly, "#45b5d8", "left", "alphabetic", 13); lx += w1;
+  label(ctx, t2, lx, ly, muted, "left", "alphabetic", 13); lx += w2;
+  label(ctx, t3, lx, ly, css("--accent"), "left", "alphabetic", 13);
+}
+// signed coherent sum (1/M) sum_m s_m(tau_m(r)) at the exact delay; NaN outside the breast
+function sumImage(ants, sigs, N) {
+  const img = new Float32Array(N * N), M = ants.length;
+  for (let iy = 0; iy < N; iy++) for (let ix = 0; ix < N; ix++) {
+    const x = -HALF + 2 * HALF * (ix + 0.5) / N, y = HALF - 2 * HALF * (iy + 0.5) / N;
+    if (x * x + y * y > RB * RB) { img[iy * N + ix] = NaN; continue; }
+    let sum = 0;
+    for (let m = 0; m < M; m++) { const R = Math.hypot(x - ants[m][0], y - ants[m][1]); sum += samp(sigs[m], 2 * R / CM); }
+    img[iy * N + ix] = sum / M;
+  }
+  return img;
+}
+// draws a signed image with the diverging map, normalised by the largest magnitude inside the breast
+function drawSigned(ctx, img, N, x0, y0, S) {
+  let mx = 0; for (const v of img) if (v === v && Math.abs(v) > mx) mx = Math.abs(v);
+  const id = ctx.createImageData(N, N);
+  for (let i = 0; i < N * N; i++) {
+    const v = img[i]; if (v !== v) continue;
+    const c = dmap(mx ? v / mx : 0);
+    id.data[4 * i] = c[0]; id.data[4 * i + 1] = c[1]; id.data[4 * i + 2] = c[2]; id.data[4 * i + 3] = 255;
+  }
+  const off = document.createElement("canvas"); off.width = N; off.height = N; off.getContext("2d").putImageData(id, 0, 0);
+  ctx.imageSmoothingEnabled = true; ctx.drawImage(off, x0, y0, S, S);
+}
+
+/* ---------- Step 8 cards ---------- */
+const CARDS = [
+  ["Simple medium", "the Green's function", "Homogeneous, lossless and non-dispersive tissue, so the scalar wave equation and one speed c apply.", "Breast tissue is heterogeneous and lossy; the image uses one average speed.",
+   '<path d="M10 35 Q40 5 70 35 T130 35 T190 35 T250 35" fill="none" stroke="var(--t2)" stroke-width="2"/>'],
+  ["Point-like antenna", "the Green's function", "The antenna radiates equally in all directions from one point (the Green's function).", "Invalid for a real directive antenna: the same scatterer gives a different amplitude and shape when it is moved (shift variance).",
+   '<circle cx="40" cy="35" r="5" fill="var(--accent)"/><circle cx="40" cy="35" r="18" fill="none" stroke="var(--t2)"/><circle cx="40" cy="35" r="30" fill="none" stroke="var(--t2)" opacity=".6"/><path d="M150 35 L190 20 L190 50 Z" fill="var(--accent)"/><path d="M190 35 L250 12 M190 35 L250 58" stroke="var(--t2)"/>'],
+  ["Born approximation", "the scattering model", "Weak scattering: the field at each scatterer is the incident field, so scatterers do not interact.", "Multiple scattering changed object locations little; a large scatterer can shadow its neighbour.",
+   '<circle cx="80" cy="35" r="8" fill="var(--t4)"/><circle cx="150" cy="35" r="8" fill="var(--t4)"/><path d="M20 35 L72 35 M158 35 L240 35" stroke="var(--t2)"/><path d="M88 30 Q115 15 142 30" fill="none" stroke="var(--muted)" stroke-dasharray="3 3"/>'],
+  ["Independent point scatterers", "the scattering model", "Any object is a sum of independent points, each with a frequency-independent reflectivity σₙ.", "Partly valid: the sum predicts the main response, but large objects give strong sidelobes the sum does not predict.",
+   '<rect x="60" y="15" width="60" height="40" rx="20" fill="none" stroke="var(--t4)" stroke-width="2"/><g fill="var(--t4)"><circle cx="160" cy="20" r="3"/><circle cx="175" cy="35" r="3"/><circle cx="190" cy="50" r="3"/><circle cx="205" cy="25" r="3"/><circle cx="220" cy="45" r="3"/></g><text x="133" y="40" font-size="16" fill="var(--muted)">≈</text>'],
+  ["Radial spreading dropped", "range processing", "The (4πR)² factor is left out of range processing.", "Compensation by (4πR)² is needed for correct relative amplitudes with an ideal source, but with the real antenna it amplified distant responses and ringing.",
+   '<path d="M20 15 Q80 60 250 62" fill="none" stroke="var(--t1)" stroke-width="2"/><path d="M20 62 L250 62" stroke="var(--line)"/><text x="150" y="40" font-size="12" fill="var(--t1)">1/(4πR)²</text>'],
+  ["Source pulse", "range processing", "Range processing divides by the pulse spectrum P(f); time-domain DAS keeps the pulse.", "Dividing by P(f), with an integration step for the antenna's derivative behaviour, gave better localisation and separation.",
+   '<path d="M20 35 L80 35 Q95 35 100 15 Q110 60 120 35 L250 35" fill="none" stroke="var(--t4)" stroke-width="2"/><path d="M160 35 L190 35 L195 10 L200 35 L250 35" fill="none" stroke="var(--t2)" stroke-width="2"/>']
+];
+function build8() {
+  $("cards8").innerHTML = CARDS.map(([t, wh, a, f, svg]) => `<div class="card"><svg viewBox="0 0 270 70" aria-hidden="true">${svg}</svg><h3>${t}</h3><span class="where">enters with ${wh}</span><p>${a}</p><p class="found">${f}</p></div>`).join("");
+}
+
+/* ---------- Step 9 ---------- */
+const S9 = { ants: ring(32), A: [-0.034, 0.012], B: [0.004, -0.006], pick: null };
+(function () {
+  const r = rng(7), sc = [[S9.A[0], S9.A[1], 1], [S9.B[0], S9.B[1], 1]];
+  while (sc.length < 30) { const x = (r() * 2 - 1) * 0.046, y = (r() * 2 - 1) * 0.046; if (x * x + y * y < 0.046 * 0.046 && Math.hypot(x - S9.A[0], y - S9.A[1]) > 0.014 && Math.hypot(x - S9.B[0], y - S9.B[1]) > 0.014) sc.push([x, y, 0.08 + 0.12 * r()]); }
+  S9.scat = sc; S9.pick = S9.B.slice();
+})();
+function on(id) { return $(id).getAttribute("aria-pressed") === "true"; }
+// peak near each tumour (within 6 mm) and strongest clutter (more than 12 mm from both, inside 44 mm)
+function peakMetrics(img, N) {
+  let pA = 0, pB = 0, cl = 0;
+  for (let iy = 0; iy < N; iy++) for (let ix = 0; ix < N; ix++) { const v = img[iy * N + ix]; if (v < 0) continue; const x = -HALF + 2 * HALF * (ix + 0.5) / N, y = HALF - 2 * HALF * (iy + 0.5) / N; const dA = Math.hypot(x - S9.A[0], y - S9.A[1]), dB = Math.hypot(x - S9.B[0], y - S9.B[1]); if (dA < 0.006) pA = Math.max(pA, v); else if (dB < 0.006) pB = Math.max(pB, v); else if (dA > 0.012 && dB > 0.012 && x * x + y * y < 0.044 * 0.044) cl = Math.max(cl, v); }
+  return { pA, pB, cl, ba: 10 * Math.log10(pB / pA), tc: 10 * Math.log10(Math.min(pA, pB) / cl) };
+}
+function peakReadouts(img, N) {
+  const q = peakMetrics(img, N), db = v => (isFinite(v) ? v.toFixed(1) : v > 0 ? "+∞" : "−∞") + " dB";
+  return [["peak B / peak A", db(q.ba)], ["weaker tumour / strongest clutter", db(q.tc)], ["colour scale", "0 to −15 dB"]];
+}
+function draw9() {
+  const alpha = +$("s9a").value; $("o9a").textContent = alpha + " Np/m";
+  if (S9.lastAlpha !== alpha) { S9.sig = record(S9.ants, S9.scat, alpha, 0.004, 3); S9.lastAlpha = alpha; }
+  const opt = { rs: on("b9s"), att: on("b9a"), cf: on("b9c"), alpha };
+  const cv = $("c9"); const nar = cv.clientWidth < 600; const { ctx, W, H } = fit(cv, nar ? 1.65 : 0.5, 330);
+  ctx.clearRect(0, 0, W, H);
+  const S = nar ? W - 44 : Math.min(H - 40, W * 0.48), x0 = 22, y0 = nar ? 22 : (H - S) / 2; S9.geo = { x0, y0, S };
+  ctx.fillStyle = css("--img-bg"); const [cx, cy] = toPx(0, 0, x0, y0, S); ctx.beginPath(); ctx.arc(cx, cy, RB / (2 * HALF) * S, 0, 2 * Math.PI); ctx.fill();
+  const N = 100, img = dasImage(S9.ants, S9.sig, N, opt);
+  drawImage(ctx, img, N, x0, y0, S, "db");
+  drawRing(ctx, S9.ants, x0, y0, S, () => true);
+  [["A", S9.A], ["B", S9.B]].forEach(([n, p]) => { const [px, py] = toPx(p[0], p[1], x0, y0, S); ctx.strokeStyle = "#45b5d8"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(px, py, 10, 0, 2 * Math.PI); ctx.stroke(); label(ctx, n, px + 12, py - 8, "#45b5d8", "left", "alphabetic", 13); });
+  S9.scat.slice(2).forEach(([x, y]) => { const [px, py] = toPx(x, y, x0, y0, S); ctx.fillStyle = "rgba(200,210,215,0.55)"; ctx.fillRect(px - 1, py - 1, 2, 2); });
+  setRO($("r9"), peakReadouts(img, N));
+  // signal lanes for picked pixel
+  const gx = nar ? 12 : x0 + S + 36, gw = nar ? W - 24 : W - gx - 12, gy = nar ? y0 + S + 54 : y0 + 20, gh = nar ? H - (y0 + S + 54) - 46 : S - 60;
+  if (gw > 90 && S9.pick) {
+    const [px, py] = toPx(S9.pick[0], S9.pick[1], x0, y0, S); ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px - 7, py); ctx.lineTo(px + 7, py); ctx.moveTo(px, py - 7); ctx.lineTo(px, py + 7); ctx.stroke();
+    const M = S9.ants.length, xs = []; let best = -1, bt = 0;
+    const R = S9.ants.map(a => Math.hypot(S9.pick[0] - a[0], S9.pick[1] - a[1]));
+    const w = R.map(r => (opt.rs ? Math.pow(r / RA, 2) : 1) * (opt.att ? Math.exp(2 * alpha * r) : 1));
+    for (const dt of WIN) { let s = 0; for (let m = 0; m < M; m++) s += w[m] * samp(S9.sig[m], 2 * R[m] / CM + dt); if (s * s > best) { best = s * s; bt = dt; } }
+    let sum = 0, sq = 0; for (let m = 0; m < M; m++) { const v = w[m] * samp(S9.sig[m], 2 * R[m] / CM + bt); xs.push(v); sum += v; sq += v * v; }
+    const cf = sq ? sum * sum / (M * sq) : 0;
+    // lanes: every second antenna; aligned (foreground) and common-delay (background) traces
+    const use = []; for (let m = 0; m < M; m += 2) use.push(m);
+    const tauMean = use.reduce((a, m) => a + 2 * R[m] / CM, 0) / use.length;
+    const NS = 161, TW = 0.4e-9, ts = []; for (let k = 0; k < NS; k++) ts.push(-TW + 2 * TW * k / (NS - 1));
+    const fg = [], bg = []; let mx = 0;
+    for (const m of use) {
+      const tau = 2 * R[m] / CM, f = new Float32Array(NS), g = new Float32Array(NS);
+      for (let k = 0; k < NS; k++) { f[k] = w[m] * samp(S9.sig[m], tau + ts[k]); g[k] = w[m] * samp(S9.sig[m], tauMean + ts[k]); const a = Math.abs(f[k]); if (a > mx) mx = a; }
+      fg.push(f); bg.push(g);
+    }
+    mx = mx || 1;
+    axes(ctx, gx, gy, gw, gh, { xl: "time relative to the focal point (−0.4 to 0.4 ns)" });
+    const ttl = "signals at the selected pixel: grey before alignment, blue after"; ctx.font = "12px " + css("--font-body");
+    if (ctx.measureText(ttl).width <= gw) label(ctx, ttl, gx, gy - 8, css("--muted"), "left", "alphabetic", 12);
+    else { label(ctx, "signals at the selected pixel:", gx, gy - 22, css("--muted"), "left", "alphabetic", 12); label(ctx, "grey before alignment, blue after", gx, gy - 8, css("--muted"), "left", "alphabetic", 12); }
+    const top = gy + 18, L = use.length, lh = (gy + gh - 4 - top) / L, amp = 0.46 * lh, clip = 0.48 * lh;
+    const tx = k => gx + 4 + (gw - 8) * k / (NS - 1), xz = gx + gw / 2;
+    ctx.strokeStyle = css("--line"); ctx.lineWidth = 0.75; ctx.beginPath();
+    for (let i = 0; i < L; i++) { const yb = Math.round(top + (i + 0.5) * lh) + 0.5; ctx.moveTo(gx + 4, yb); ctx.lineTo(gx + gw - 4, yb); }
+    ctx.stroke();
+    ctx.strokeStyle = css("--muted"); ctx.lineWidth = 1; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(Math.round(xz) + 0.5, top - 2); ctx.lineTo(Math.round(xz) + 0.5, gy + gh); ctx.stroke(); ctx.setLineDash([]);
+    label(ctx, "focal point", xz, gy + 4, css("--muted"), "center", "top", 11);
+    const lane = (arr, i, col, lw) => { const yb = top + (i + 0.5) * lh; ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath(); for (let k = 0; k < NS; k++) { const y = yb - Math.max(-clip, Math.min(clip, arr[k] / mx * amp)); k ? ctx.lineTo(tx(k), y) : ctx.moveTo(tx(k), y); } ctx.stroke(); };
+    ctx.globalAlpha = 0.35; const gcol = css("--muted"); bg.forEach((g, i) => lane(g, i, gcol, 1)); ctx.globalAlpha = 1;
+    const bcol = css("--t2"); fg.forEach((f, i) => lane(f, i, bcol, 1.5));
+    label(ctx, "CF = " + cf.toFixed(2), gx + gw - 6, gy + gh + 30, css("--ink"), "right", "alphabetic", 14);
+    label(ctx, "|Σxₘ|² / (M Σxₘ²)", gx + 6, gy + gh + 30, css("--muted"), "left", "alphabetic", 12);
+  }
+}
+
+/* ---------- Step 10 (id s9b): channel-ranked DAS (CR-DAS) and improved DAS (IDAS) ---------- */
+const S9b = { mode: "das", N: 100, alpha: 10, sigs: {}, imgs: {}, pick: null, G: null, fitInv: null };
+(function () {
+  // fixed standard-normal travel-time perturbation g_mn for each antenna-scatterer pair
+  const r = rng(29), M = S9.ants.length, Ns = S9.scat.length;
+  S9b.G = []; for (let m = 0; m < M; m++) { const row = new Float64Array(Ns); for (let n = 0; n < Ns; n++) row[n] = gauss(r); S9b.G.push(row); }
+  S9b.pick = S9.B.slice();
+  // inverse of the normal-equation matrix for the least-squares fit y = a n^2 + b n + c over n = 1..M
+  const s = [0, 0, 0, 0, 0]; for (let n = 1; n <= M; n++) for (let p = 0; p < 5; p++) s[p] += Math.pow(n, p);
+  const A = [[s[4], s[3], s[2]], [s[3], s[2], s[1]], [s[2], s[1], s[0]]];
+  const det = A[0][0] * (A[1][1] * A[2][2] - A[1][2] * A[2][1]) - A[0][1] * (A[1][0] * A[2][2] - A[1][2] * A[2][0]) + A[0][2] * (A[1][0] * A[2][1] - A[1][1] * A[2][0]);
+  const inv = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) { const r1 = [0, 1, 2].filter(k => k !== j), c1 = [0, 1, 2].filter(k => k !== i); inv[i][j] = ((i + j) % 2 ? -1 : 1) * (A[r1[0]][c1[0]] * A[r1[1]][c1[1]] - A[r1[0]][c1[1]] * A[r1[1]][c1[0]]) / det; }
+  S9b.fitInv = inv;
+})();
+// as record(), but the round-trip time to scatterer n seen by antenna m is 2R/c (1 + h g_mn)
+function recordHet(ants, scat, alpha, noise, seed, h, G) {
+  const r = rng(seed || 1);
+  return ants.map(([ax, ay], m) => {
+    const s = new Float32Array(NT);
+    scat.forEach(([x, y, sig], n) => {
+      const R = Math.hypot(x - ax, y - ay), tau = 2 * R / CM * (1 + h * G[m][n]);
+      const amp = sig * Math.pow(RA / R, 2) * Math.exp(-2 * alpha * R);
+      const k0 = Math.max(0, Math.floor((tau - 0.35e-9 + T0) / DT)), k1 = Math.min(NT, Math.ceil((tau + 0.35e-9 + T0) / DT));
+      for (let k = k0; k < k1; k++) s[k] += amp * pulse(k * DT - T0 - tau);
+    });
+    if (noise) for (let k = 0; k < NT; k++) s[k] += noise * gauss(r);
+    return s;
+  });
+}
+// equalisation weight: undoes the radial spreading and the tissue loss of the simulated echoes (as step 9)
+function eqW(R) { return Math.pow(R / RA, 2) * Math.exp(2 * S9b.alpha * R); }
+function idasBuf(M) { return { cum: new Float64Array(WIN.length), y: new Float64Array(M), e: new Float64Array(M) }; }
+// energy-collection curve and quality factor (Klemm et al. 2008) at focal point (x, y); summation order = antenna index
+function idasCore(sig, x, y, b, eq) {
+  const ants = S9.ants, M = ants.length, K = WIN.length; b.cum.fill(0);
+  let me = 0;
+  for (let m = 0; m < M; m++) {
+    const R = Math.hypot(x - ants[m][0], y - ants[m][1]), tau = 2 * R / CM, g = eq ? eqW(R) : 1; let em = 0, E = 0;
+    for (let k = 0; k < K; k++) { const v = g * samp(sig[m], tau + WIN[k]); b.cum[k] += v; em += v * v; }
+    for (let k = 0; k < K; k++) E += b.cum[k] * b.cum[k];
+    b.y[m] = E; b.e[m] = em; me += em;
+  }
+  me /= M; let vs = 0; for (let m = 0; m < M; m++) vs += (b.e[m] - me) * (b.e[m] - me);
+  const sd = Math.sqrt(vs / M), E = b.y[M - 1];
+  let t0 = 0, t1 = 0, t2 = 0;
+  for (let m = 0; m < M; m++) { b.y[m] /= 1 + sd; const n = m + 1; t2 += n * n * b.y[m]; t1 += n * b.y[m]; t0 += b.y[m]; }
+  const I = S9b.fitInv, rhs = [t2, t1, t0];
+  const [a, bb, c] = I.map(row => row[0] * rhs[0] + row[1] * rhs[1] + row[2] * rhs[2]);
+  return { a, b: bb, c, sd, E };
+}
+// channel-ranked weights (O'Halloran et al. 2010, Eq. 6 as published): rank 1 = shortest path
+function crWeights(x, y) {
+  const ants = S9.ants, M = ants.length, R = ants.map(a => Math.hypot(x - a[0], y - a[1]));
+  const idx = R.map((_, i) => i).sort((i, j) => R[i] - R[j]), rank = new Array(M), w = new Float64Array(M);
+  idx.forEach((m, k) => { rank[m] = k + 1; w[m] = (M - (k + 1)) / (M * (M + 1) / 2); });
+  return { R, rank, w };
+}
+// image for mode "das", "cr" or "idas"; eq = equalise the echoes first (default, as in Klemm et al. 2008, Sec. 3.2)
+function image9b(sig, mode, N, eq) {
+  if (eq === undefined) eq = true;
+  const ants = S9.ants, M = ants.length, img = new Float32Array(N * N), b = idasBuf(M);
+  for (let iy = 0; iy < N; iy++) for (let ix = 0; ix < N; ix++) {
+    const x = -HALF + 2 * HALF * (ix + 0.5) / N, y = HALF - 2 * HALF * (iy + 0.5) / N;
+    if (x * x + y * y > RB * RB) { img[iy * N + ix] = -1; continue; }
+    if (mode === "idas") { const q = idasCore(sig, x, y, b, eq); img[iy * N + ix] = Math.max(q.a, 0) * q.E; continue; }
+    const { R, w } = crWeights(x, y); let e = 0;
+    for (let m = 0; m < M; m++) { if (mode === "das") w[m] = 1; if (eq) w[m] *= eqW(R[m]); }
+    for (const dt of WIN) { let s = 0; for (let m = 0; m < M; m++) s += w[m] * samp(sig[m], 2 * R[m] / CM + dt); e += s * s; }
+    img[iy * N + ix] = e;
+  }
+  return img;
+}
+function sig9b(h) { const key = h.toFixed(1); if (!S9b.sigs[key]) S9b.sigs[key] = recordHet(S9.ants, S9.scat, S9b.alpha, 0.004, 3, h / 100, S9b.G); return S9b.sigs[key]; }
+function img9b(h, mode) {
+  const key = h.toFixed(1) + mode;
+  if (!S9b.imgs[key]) S9b.imgs[key] = image9b(sig9b(h), mode, S9b.N, true);
+  return S9b.imgs[key];
+}
+function qf9b(h, x, y, eq) { const q = idasCore(sig9b(h), x, y, idasBuf(S9.ants.length), eq === undefined ? true : eq); return { a: q.a, sd: q.sd, E: q.E }; }
+// position of the strongest clutter peak in the DAS image (same region as peakMetrics)
+function clutterPos(h) {
+  const key = h.toFixed(1); S9b.clp = S9b.clp || {}; if (S9b.clp[key]) return S9b.clp[key];
+  const N = S9b.N, img = img9b(h, "das"); let best = -1, bp = [0, 0];
+  for (let iy = 0; iy < N; iy++) for (let ix = 0; ix < N; ix++) { const v = img[iy * N + ix]; const x = -HALF + 2 * HALF * (ix + 0.5) / N, y = HALF - 2 * HALF * (iy + 0.5) / N; const dA = Math.hypot(x - S9.A[0], y - S9.A[1]), dB = Math.hypot(x - S9.B[0], y - S9.B[1]); if (dA > 0.012 && dB > 0.012 && x * x + y * y < 0.044 * 0.044 && v > best) { best = v; bp = [x, y]; } }
+  return (S9b.clp[key] = bp);
+}
+function hexRGB(s) { s = s.replace("#", ""); if (s.length === 3) s = s.split("").map(c => c + c).join(""); return [0, 2, 4].map(i => parseInt(s.slice(i, i + 2), 16)); }
+// rank colour: strong accent for the nearest antenna, pale accent for the farthest
+function rankCol(t) { const a = hexRGB(css("--accent")), p = a.map(c => c + (255 - c) * 0.8); return `rgb(${a.map((c, i) => Math.round(c + (p[i] - c) * t)).join(",")})`; }
+function fmtS(v) { const a = Math.abs(v); return v === 0 ? "0" : a >= 0.01 && a < 1000 ? v.toPrecision(3) : v.toExponential(2); }
+function draw9b() {
+  const h = +$("s9bh").value; $("o9bh").textContent = "±" + h.toFixed(1) + " % speed error (1σ)";
+  const mode = S9b.mode, N = S9b.N, img = img9b(h, mode), sig = sig9b(h);
+  const cv = $("c9b"), W0 = cv.clientWidth || 600, nar = W0 < 600, PH = 150;
+  const Hn = nar ? 22 + (W0 - 44) + 26 + 2 * (PH + 64) : Math.max(330, Math.round(W0 * 0.5));
+  const { ctx, W, H } = fit(cv, Hn / W0, 0);
+  ctx.clearRect(0, 0, W, H);
+  const S = nar ? W - 44 : Math.min(H - 40, W * 0.48), x0 = 22, y0 = nar ? 22 : (H - S) / 2; S9b.geo = { x0, y0, S };
+  ctx.fillStyle = css("--img-bg"); const [cx, cy] = toPx(0, 0, x0, y0, S); ctx.beginPath(); ctx.arc(cx, cy, RB / (2 * HALF) * S, 0, 2 * Math.PI); ctx.fill();
+  drawImage(ctx, img, N, x0, y0, S, "db");
+  const muted = css("--muted"), M = S9.ants.length, cr = crWeights(S9b.pick[0], S9b.pick[1]);
+  if (mode === "cr") {
+    drawRing(ctx, S9.ants, x0, y0, S);
+    S9.ants.forEach(([ax, ay], m) => { const [px, py] = toPx(ax, ay, x0, y0, S); ctx.fillStyle = rankCol((cr.rank[m] - 1) / (M - 1)); ctx.beginPath(); ctx.arc(px, py, 4.5, 0, 2 * Math.PI); ctx.fill(); ctx.strokeStyle = muted; ctx.lineWidth = 0.75; ctx.stroke(); });
+  } else drawRing(ctx, S9.ants, x0, y0, S, () => true);
+  [["A", S9.A], ["B", S9.B]].forEach(([n, p]) => { const [px, py] = toPx(p[0], p[1], x0, y0, S); ctx.strokeStyle = "#45b5d8"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(px, py, 10, 0, 2 * Math.PI); ctx.stroke(); label(ctx, n, px + 12, py - 8, "#45b5d8", "left", "alphabetic", 13); });
+  S9.scat.slice(2).forEach(([x, y]) => { const [px, py] = toPx(x, y, x0, y0, S); ctx.fillStyle = "rgba(200,210,215,0.55)"; ctx.fillRect(px - 1, py - 1, 2, 2); });
+  if (mode === "idas") { const c = clutterPos(h), [px, py] = toPx(c[0], c[1], x0, y0, S); ctx.strokeStyle = "rgba(190,200,205,0.95)"; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.arc(px, py, 10, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]); label(ctx, "clutter", px + 12, py - 8, "rgba(190,200,205,0.95)", "left", "alphabetic", 12); }
+  const [qx, qy] = toPx(S9b.pick[0], S9b.pick[1], x0, y0, S); ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(qx - 7, qy); ctx.lineTo(qx + 7, qy); ctx.moveTo(qx, qy - 7); ctx.lineTo(qx, qy + 7); ctx.stroke();
+  setRO($("r9b"), peakReadouts(img, N));
+  // side plots for the selected pixel
+  const gx = nar ? 12 : x0 + S + 44, gw = nar ? W - 24 : W - gx - 12;
+  const gh = nar ? PH : (S - 22 - 42 - 22 - 42) / 2;
+  const gy1 = nar ? y0 + S + 26 + 22 : y0 + 22, gy2 = gy1 + gh + 42 + 22;
+  if (gw < 120 || gh < 40) return;
+  const nx = n => gx + 6 + (gw - 12) * (n - 1) / (M - 1), ticks = [1, 8, 16, 24, 32].map(n => [nx(n), String(n)]);
+  // (1) channel-ranked weights against rank
+  if (mode === "cr") {
+  axes(ctx, gx, gy1, gw, gh, { xl: "rank (1 = nearest)", ticks });
+  label(ctx, "channel-ranked weights wₘ (antennas coloured by rank)", gx, gy1 - 8, muted, "left", "alphabetic", 12);
+  const wmax = (M - 1) / (M * (M + 1) / 2), bw = (gw - 12) / (M - 1);
+  for (let k = 1; k <= M; k++) { const w = (M - k) / (M * (M + 1) / 2), hh = w / wmax * (gh - 26); ctx.fillStyle = rankCol((k - 1) / (M - 1)); ctx.fillRect(nx(k) - bw * 0.4, gy1 + gh - hh, bw * 0.8, hh); }
+  label(ctx, "w = " + wmax.toFixed(3) + " at rank 1, 0 at rank " + M, gx + gw - 6, gy1 + 16, muted, "right", "alphabetic", 12);
+  }
+  if (mode !== "idas") return;
+  // (1) quality factor at tumour A, tumour B and the strongest clutter peak of the DAS image (log scale)
+  const pts = [["tumour A", S9.A], ["tumour B", S9.B], ["strongest clutter", clutterPos(h)]];
+  const qv = pts.map(([, p]) => qf9b(h, p[0], p[1]).a), pos = qv.map(v => Math.max(v, 1e-6));
+  const lmax = Math.ceil(Math.log10(Math.max(...pos))), lmin = Math.min(lmax - 1, Math.floor(Math.log10(Math.min(...pos))));
+  axes(ctx, gx, gy1, gw, gh, {});
+  label(ctx, "quality factor QF (log scale)", gx, gy1 - 8, muted, "left", "alphabetic", 12);
+  const bwq = gw / 3;
+  pts.forEach(([n], i) => {
+    const hh = (Math.log10(pos[i]) - lmin) / (lmax - lmin) * (gh - 22), bx = gx + bwq * i + bwq * 0.25;
+    ctx.fillStyle = i < 2 ? "#45b5d8" : "rgba(160,170,175,0.9)"; ctx.fillRect(bx, gy1 + gh - hh, bwq * 0.5, hh);
+    label(ctx, "QF = " + fmtS(qv[i]), bx + bwq * 0.25, gy1 + gh - hh - 4, css("--ink"), "center", "alphabetic", 12);
+    label(ctx, n, bx + bwq * 0.25, gy1 + gh + 4, muted, "center", "top", 12);
+  });
+  // (2) energy collection curve and fitted parabola
+  const yv = idasBuf(M), q = idasCore(sig, S9b.pick[0], S9b.pick[1], yv, true);
+  const fitf = n => q.a * n * n + q.b * n + q.c;
+  let lo = 0, hi = 0; for (let n = 1; n <= M; n++) { lo = Math.min(lo, yv.y[n - 1], fitf(n)); hi = Math.max(hi, yv.y[n - 1], fitf(n)); }
+  hi = hi > lo ? hi + 0.08 * (hi - lo) : lo + 1;
+  const py = v => gy2 + gh - 4 - (v - lo) / (hi - lo) * (gh - 8);
+  axes(ctx, gx, gy2, gw, gh, { xl: "signals added n", ticks, zero: lo < 0 ? py(0) : undefined });
+  label(ctx, "energy collection E(n)/(1 + σₑ) and fitted parabola", gx, gy2 - 8, muted, "left", "alphabetic", 12);
+  const fx = [], fy = []; for (let i = 0; i <= 100; i++) { const n = 1 + (M - 1) * i / 100; fx.push(nx(n)); fy.push(py(fitf(n))); }
+  poly(ctx, fx, fy, css("--accent"), 1.6);
+  ctx.fillStyle = css("--t2"); for (let n = 1; n <= M; n++) { ctx.beginPath(); ctx.arc(nx(n), py(yv.y[n - 1]), 2.6, 0, 2 * Math.PI); ctx.fill(); }
+  label(ctx, "QF = a = " + fmtS(q.a), gx + 8, gy2 + 18, css("--ink"), "left", "alphabetic", 13);
+  label(ctx, "σₑ = " + fmtS(q.sd), gx + 8, gy2 + 36, css("--ink"), "left", "alphabetic", 13);
+}
+
+/* ---------- Step 11 (id s10): MIST ---------- */
+const S10 = { ants: ring(24), r0: [-0.03, 0.01] };
+function draw10() {
+  const a0 = +$("s10a").value, eta = Math.pow(10, +$("s10e").value);
+  $("o10a").textContent = a0 + " Np/m"; $("o10e").textContent = "10^" + (+$("s10e").value).toFixed(2);
+  const Nf = 200, fmax = 12e9, f = [], P = [];
+  for (let q = 1; q <= Nf; q++) { const fq = fmax * q / Nf; f.push(fq); P.push(Math.exp(-Math.pow(2 * Math.PI * (fq - F0) * ST, 2) / 2)); }
+  const R = S10.ants.map(a => Math.hypot(S10.r0[0] - a[0], S10.r0[1] - a[1]));
+  const Rmin = Math.min(...R);
+  // H_m with delay removed (aligned): magnitude only
+  const Hm = R.map(r => f.map(fq => Math.pow(Rmin / r, 2) * Math.exp(-a0 * (fq / F0) * 2 * r)));
+  const Ssum = f.map((_, q) => Hm.reduce((s, h) => s + h[q] * h[q], 0));
+  const Smax = Math.max(...Ssum);
+  const NT2 = 241, T = 0.6e-9, tt = []; for (let k = 0; k < NT2; k++) tt.push(-T + 2 * T * k / (NT2 - 1));
+  const ift = G => tt.map(t => { let s = 0; for (let q = 0; q < Nf; q++) s += G[q] * Math.cos(2 * Math.PI * f[q] * t); return s; });
+  const p0 = ift(P), pk = Math.max(...p0.map(Math.abs));
+  const order = R.map((r, i) => [r, i]).sort((x, y) => x[0] - y[0]);
+  const pickIdx = [0, 5, 9, 14, 19, 23].map(j => order[j][1]);
+  const cols = [css("--t3"), css("--t2"), css("--t5"), css("--t4"), css("--t1"), css("--muted")];
+  const das = ift(f.map((_, q) => P[q] * Hm.reduce((s, h) => s + h[q], 0) / Hm.length));
+  const mist = ift(f.map((_, q) => P[q] * Ssum[q] / (Ssum[q] + eta * Smax)));
+  const { ctx, W, H } = fit($("c10"), 0.78, 520);
+  ctx.clearRect(0, 0, W, H);
+  const x0 = 46, w = W - x0 - 16, h1 = H * 0.27, g = 40;
+  const y1 = 10, y2 = y1 + h1 + g, y3 = y2 + h1 + g, h3 = H - y3 - 40;
+  const X = k => x0 + k / (NT2 - 1) * w;
+  axes(ctx, x0, y1, w, h1, { zero: y1 + h1 * 0.72, xl: "time after alignment (−0.6 to 0.6 ns)", yl: "aligned echoes from the focal point, six antennas" });
+  pickIdx.forEach((i, j) => { const sig = ift(f.map((_, q) => P[q] * Hm[i][q])); poly(ctx, tt.map((_, k) => X(k)), sig.map(v => y1 + h1 * 0.72 - 0.6 * h1 * v / pk), cols[j], 1.6); label(ctx, (2 * R[i] * 1000).toFixed(0) + " mm", x0 + 8, y1 + 46 + 15 * j, cols[j], "left", "alphabetic", 12); });
+  label(ctx, "round-trip path", x0 + 8, y1 + 31, css("--muted"), "left", "alphabetic", 12);
+  axes(ctx, x0, y2, w, h1, { zero: y2 + h1 / 2, xl: "time (−0.6 to 0.6 ns)", yl: "summed response, scaled to the transmitted pulse" });
+  poly(ctx, tt.map((_, k) => X(k)), p0.map(v => y2 + h1 / 2 - 0.45 * h1 * v / pk), css("--muted"), 2, [6, 4]);
+  poly(ctx, tt.map((_, k) => X(k)), das.map(v => y2 + h1 / 2 - 0.45 * h1 * v / pk), css("--t1"), 1.8);
+  poly(ctx, tt.map((_, k) => X(k)), mist.map(v => y2 + h1 / 2 - 0.45 * h1 * v / pk), css("--t2"), 1.8);
+  label(ctx, "dashed: transmitted pulse", x0 + w - 6, y2 + 16, css("--muted"), "right", "alphabetic", 12);
+  label(ctx, "DAS average", x0 + w - 6, y2 + 31, css("--t1"), "right", "alphabetic", 12);
+  const dmx = Math.max(...das.map(Math.abs)) || 1;
+  poly(ctx, tt.map((_, k) => X(k)), das.map(v => y2 + h1 / 2 - 0.45 * h1 * v / dmx), css("--t1"), 1, [2, 3]);
+  label(ctx, "DAS average, rescaled to the same peak (dotted)", x0 + w - 6, y2 + 46, css("--t1"), "right", "alphabetic", 12);
+  label(ctx, "MIST", x0 + w - 6, y2 + 61, css("--t2"), "right", "alphabetic", 12);
+  axes(ctx, x0, y3, w, h3, { xl: "frequency (GHz)", yl: "spectrum of the summed response", ticks: [0, 2, 4, 6, 8, 10, 12].map(gq => [x0 + gq / 12 * w, String(gq)]) });
+  const FX = fq => x0 + fq / fmax * w, FY = v => y3 + h3 - 0.85 * h3 * v;
+  poly(ctx, f.map(FX), P.map(FY), css("--muted"), 2, [6, 4]);
+  poly(ctx, f.map(FX), f.map((_, q) => FY(P[q] * Hm.reduce((s2, h) => s2 + h[q], 0) / Hm.length)), css("--t1"), 1.8);
+  poly(ctx, f.map(FX), f.map((_, q) => FY(P[q] * Ssum[q] / (Ssum[q] + eta * Smax))), css("--t2"), 1.8);
+  label(ctx, "dashed: transmitted pulse", x0 + w - 6, y3 + 16, css("--muted"), "right", "alphabetic", 12);
+  label(ctx, "DAS average: high frequencies lost", x0 + w - 6, y3 + 31, css("--t1"), "right", "alphabetic", 12);
+  label(ctx, "MIST: band restored where the regularisation allows", x0 + w - 6, y3 + 46, css("--t2"), "right", "alphabetic", 12);
+  setRO($("r10"), [["DAS peak / pulse peak", (Math.max(...das) / Math.max(...p0)).toFixed(2)], ["MIST peak / pulse peak", (Math.max(...mist) / Math.max(...p0)).toFixed(2)]]);
+}
+
+/* ---------- Step 12 (id s11): Capon and RCB ---------- */
+function jacobi(A) {
+  const n = A.length, a = A.map(r => r.slice()), V = A.map((r, i) => r.map((_, j) => (i === j ? 1 : 0)));
+  for (let sweep = 0; sweep < 60; sweep++) {
+    let off = 0; for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) off += a[i][j] * a[i][j];
+    if (off < 1e-20) break;
+    for (let p = 0; p < n; p++) for (let q = p + 1; q < n; q++) {
+      if (Math.abs(a[p][q]) < 1e-15) continue;
+      const th = (a[q][q] - a[p][p]) / (2 * a[p][q]), t = Math.sign(th || 1) / (Math.abs(th) + Math.sqrt(th * th + 1)), c = 1 / Math.sqrt(t * t + 1), s = t * c;
+      for (let k = 0; k < n; k++) { const akp = a[k][p], akq = a[k][q]; a[k][p] = c * akp - s * akq; a[k][q] = s * akp + c * akq; }
+      for (let k = 0; k < n; k++) { const apk = a[p][k], aqk = a[q][k]; a[p][k] = c * apk - s * aqk; a[q][k] = s * apk + c * aqk; }
+      for (let k = 0; k < n; k++) { const vkp = V[k][p], vkq = V[k][q]; V[k][p] = c * vkp - s * vkq; V[k][q] = s * vkp + c * vkq; }
+    }
+  }
+  return { val: a.map((r, i) => r[i]), vec: V };
+}
+const S11 = { M: 8, N: 240 };
+(function () { const r = rng(11); S11.d = []; S11.e = []; S11.noise = []; for (let m = 0; m < 8; m++) { S11.d.push(2 * r() - 1); S11.e.push(2 * r() - 1); const row = []; for (let k = 0; k < 240; k++) row.push(gauss(r)); S11.noise.push(row); } })();
+function draw11() {
+  const Ai = +$("s11i").value, mis = +$("s11m").value / 100, eps = +$("s11e").value, M = S11.M, N = S11.N;
+  $("o11i").textContent = Ai.toFixed(1); $("o11m").textContent = (mis * 100).toFixed(0) + " %"; $("o11e").textContent = eps.toFixed(2);
+  const T = 0.6e-9, t = []; for (let k = 0; k < N; k++) t.push(-T + 2 * T * k / (N - 1));
+  const soi = t.map(tt => pulse(tt));
+  const Y = [], Ys = [], Yi = [];
+  for (let m = 0; m < M; m++) {
+    const g = 1 + mis * S11.d[m], sh = mis * 0.12e-9 * S11.e[m], di = (m - 3.5) * 0.015e-9 + 0.25e-9;
+    Ys.push(t.map(tt => g * pulse(tt - sh)));
+    const bm = Math.exp(-m * m / 4.5);
+    Yi.push(t.map((tt, k) => Ai * bm * pulse(tt - di) + 0.05 * S11.noise[m][k]));
+    Y.push(Ys[m].map((v, k) => v + Yi[m][k]));
+  }
+  const R = []; for (let i = 0; i < M; i++) { R.push([]); for (let j = 0; j < M; j++) { let s = 0; for (let k = 0; k < N; k++) s += Y[i][k] * Y[j][k]; R[i].push(s / N); } }
+  const { val, vec } = jacobi(R);
+  const a = new Array(M).fill(1);
+  const UT = v => val.map((_, k) => { let s = 0; for (let i = 0; i < M; i++) s += vec[i][k] * v[i]; return s; });
+  const U = z => { const out = new Array(M).fill(0); for (let i = 0; i < M; i++) for (let k = 0; k < M; k++) out[i] += vec[i][k] * z[k]; return out; };
+  const Rinv = v => U(UT(v).map((z, k) => z / Math.max(val[k], 1e-9)));
+  const dot = (x, y) => x.reduce((s, v, i) => s + v * y[i], 0);
+  const capon = av => { const ri = Rinv(av); const d = dot(av, ri); return ri.map(v => v / d); };
+  const wD = a.map(() => 1 / M), wC = capon(a);
+  // RCB: find lambda with sum z_k^2/(1+lambda*g_k)^2 = eps
+  const z = UT(a); const gfun = L => z.reduce((s, zk, k) => s + zk * zk / Math.pow(1 + L * val[k], 2), 0);
+  let lo = 0, hi = 1; while (gfun(hi) > eps && hi < 1e12) hi *= 2;
+  for (let it = 0; it < 80; it++) { const mid = (lo + hi) / 2; if (gfun(mid) > eps) lo = mid; else hi = mid; }
+  const Lm = (lo + hi) / 2;
+  const ahat = a.map((v, i) => v - U(z.map((zk, k) => zk / (1 + Lm * val[k])))[i]);
+  const scale = Math.sqrt(dot(ahat, ahat) / M);
+  const wR = capon(ahat).map(v => v * scale);
+  const out = w => t.map((_, k) => { let s = 0; for (let m = 0; m < M; m++) s += w[m] * Y[m][k]; return s; });
+  const oD = out(wD), oC = out(wC), oR = out(wR);
+  const pp = dot(soi, soi);
+  const part = (w, Z) => t.map((_, k) => { let s = 0; for (let m = 0; m < M; m++) s += w[m] * Z[m][k]; return s; });
+  const gain = w => dot(part(w, Ys), soi) / pp, resid = w => { const o = part(w, Yi); return dot(o, o) / pp; };
+  const db = v => (10 * Math.log10(Math.max(v, 1e-6))).toFixed(1) + " dB";
+  setRO($("r11"), [["gain on wanted echo: DAS", gain(wD).toFixed(2)], ["Capon", gain(wC).toFixed(2)], ["RCB", gain(wR).toFixed(2)], ["interference + noise passed: DAS", db(resid(wD))], ["Capon", db(resid(wC))], ["RCB", db(resid(wR))]]);
+  const { ctx, W, H } = fit($("c11"), 0.8, 540);
+  ctx.clearRect(0, 0, W, H);
+  const x0 = 46, w = W - x0 - 16, g = 38, h1 = H * 0.34, y1 = 10, y2 = y1 + h1 + g, h2 = H * 0.27, y3 = y2 + h2 + g, h3 = H - y3 - 26;
+  const X = k => x0 + k / (N - 1) * w;
+  axes(ctx, x0, y1, w, h1, {});
+  const lane = h1 / (M + 0.5), amax = 1 + Ai + 0.4;
+  for (let m = 0; m < M; m++) { const yc = y1 + lane * (m + 0.75); poly(ctx, t.map((_, k) => X(k)), Y[m].map(v => yc - 0.5 * lane * v / amax * 1.6), css("--ink"), 1); }
+  ctx.strokeStyle = css("--t2"); ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(X(N / 2), y1); ctx.lineTo(X(N / 2), y1 + h1); ctx.stroke(); ctx.setLineDash([]);
+  label(ctx, "wanted echo: aligned", X(N / 2) - 6, y1 + h1 + 14, css("--t2"), "right", "alphabetic", 12);
+  label(ctx, "eight aligned channels, time −0.6 to 0.6 ns", x0 + w - 6, y1 + h1 + 14, css("--muted"), "right", "alphabetic", 12);
+  axes(ctx, x0, y2, w, h2, { zero: y2 + h2 / 2, xl: "time", yl: "beamformer outputs" });
+  const sc = 0.4 * h2 / 1.2;
+  poly(ctx, t.map((_, k) => X(k)), soi.map(v => y2 + h2 / 2 - sc * v), css("--muted"), 2.2, [6, 4]);
+  poly(ctx, t.map((_, k) => X(k)), oD.map(v => y2 + h2 / 2 - sc * Math.max(-1.4, Math.min(1.4, v))), css("--t1"), 1.6);
+  poly(ctx, t.map((_, k) => X(k)), oC.map(v => y2 + h2 / 2 - sc * Math.max(-1.4, Math.min(1.4, v))), css("--t4"), 1.6);
+  poly(ctx, t.map((_, k) => X(k)), oR.map(v => y2 + h2 / 2 - sc * Math.max(-1.4, Math.min(1.4, v))), css("--t2"), 1.8);
+  [["dashed: true echo", css("--muted")], ["DAS", css("--t1")], ["Capon", css("--t4")], ["RCB", css("--t2")]].forEach(([s, c], i) => label(ctx, s, x0 + w - 6, y2 + 16 + 14 * i, c, "right", "alphabetic", 12));
+  axes(ctx, x0, y3, w, h3, { zero: y3 + h3 / 2, xl: "channel m = 1 to 8, for each beamformer", yl: "weights wₘ" });
+  const groups = [[wD, css("--t1"), "DAS"], [wC, css("--t4"), "Capon"], [wR, css("--t2"), "RCB"]];
+  const gwid = w / 3, bmax = Math.max(...groups.flatMap(gr => gr[0].map(Math.abs))) || 1;
+  groups.forEach(([wv, col, nm], gi) => { const bw = (gwid - 30) / M; wv.forEach((v, m) => { const hh = v / bmax * h3 * 0.42; ctx.fillStyle = col; ctx.fillRect(x0 + gi * gwid + 15 + m * bw + 1, y3 + h3 / 2 - Math.max(hh, 0), Math.max(1, bw - 2), Math.abs(hh)); }); label(ctx, nm, x0 + gi * gwid + gwid / 2, y3 + 16, col, "center", "alphabetic", 12); });
+}
+
+/* ---------- Overview diagram ---------- */
+function buildFlow() {
+  const box = (x, y, w, h, t1, t2, col) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" fill="var(--surface)" stroke="${col}" stroke-width="2"/><text x="${x + w / 2}" y="${y + 24}" text-anchor="middle" font-family="var(--font-body)" font-weight="600" font-size="15" fill="var(--ink)">${t1}</text>` + t2.map((s, i) => `<text x="${x + w / 2}" y="${y + 44 + i * 17}" text-anchor="middle" font-family="var(--font-body)" font-size="13" fill="var(--muted)">${s}</text>`).join("");
+  const arr = (x1, y1, x2, y2) => `<path d="M${x1} ${y1} L${x2} ${y2}" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#ah)"/>`;
+  $("flow").innerHTML = `<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="var(--muted)"/></marker></defs>` +
+    box(10, 20, 200, 80, "Signal model", ["point antenna, Born,", "point scatterers"], "var(--muted)") +
+    box(250, 20, 190, 80, "Range processing", ["divide by P(f),", "inverse transform"], "var(--muted)") +
+    box(480, 20, 200, 80, "DAS", ["delay, sum, square,", "integrate over T"], "var(--accent)") +
+    arr(210, 60, 248, 60) + arr(440, 60, 478, 60) +
+    box(20, 180, 270, 120, "Scalar weights wₘ(r)", ["radial spreading, attenuation:", "restore dropped amplitude terms", "coherence and quality factors:", "favour pixels where channels agree"], "var(--t1)") +
+    box(315, 180, 270, 120, "Filters Wₘ(f) (MIST)", ["model loss and phase per path;", "unit gain on the focal point;", "data-independent"], "var(--t2)") +
+    box(610, 180, 280, 120, "Data-derived weights", ["Capon: minimum output power,", "unit gain on the steering vector;", "RCB: allows steering error ε"], "var(--t4)") +
+    arr(560, 100, 160, 178) + arr(580, 100, 450, 178) + arr(600, 100, 745, 178);
+}
+
+/* ---------- wiring ---------- */
+function toggle(id, fn) { $(id).addEventListener("click", () => { const b = $(id); b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") === "true" ? "false" : "true"); fn(); }); }
+["s1e", "s1f"].forEach(id => $(id).addEventListener("input", () => { draw1(); if (reduceMotion) draw1b(performance.now()); }));
+$("c1b").addEventListener("pointerdown", e => { S1B.drag = true; pick1b(e); });
+$("c1b").addEventListener("pointermove", e => { if (S1B.drag) pick1b(e); });
+window.addEventListener("pointerup", () => { S1B.drag = false; });
+$("s2w").addEventListener("input", draw2);
+$("s3a").addEventListener("input", draw3);
+["s4a", "s4b", "s4c"].forEach(id => $(id).addEventListener("input", draw4));
+$("s5f").addEventListener("input", draw5); toggle("b5d", draw5); toggle("b5r", draw5);
+let drag6 = false;
+$("c6").addEventListener("pointerdown", e => { drag6 = true; const [x, y] = pickXY(e, S6.geo); if (inside(x, y)) { S6.fp = [x, y]; draw6(); } });
+$("c6").addEventListener("pointermove", e => { if (!drag6) return; const [x, y] = pickXY(e, S6.geo); if (inside(x, y)) { S6.fp = [x, y]; draw6(); } });
+window.addEventListener("pointerup", () => { drag6 = false; });
+$("s7M").addEventListener("input", draw7);
+$("c7").addEventListener("pointerdown", e => {
+  const b = e.currentTarget.getBoundingClientRect(), px = (e.clientX - b.left) / PZ.z, py = (e.clientY - b.top) / PZ.z;
+  const g = (S7.geos || []).find(q => px >= q.x0 && px <= q.x0 + q.S && py >= q.y0 && py <= q.y0 + q.S); if (!g) return;
+  const [x, y] = pickXY(e, g); if (inside(x, y)) { S7.tum = [x, y]; sig7(); draw7(); }
+});
+$("b7p").addEventListener("click", () => {
+  if (S7.timer) { clearInterval(S7.timer); S7.timer = null; }
+  let M = 1; $("s7M").value = 1; draw7();
+  S7.timer = setInterval(() => { M++; if (M > 48) { clearInterval(S7.timer); S7.timer = null; return; } $("s7M").value = M; draw7(); }, reduceMotion ? 1 : 160);
+});
+$("s9a").addEventListener("input", draw9); toggle("b9s", draw9); toggle("b9a", draw9); toggle("b9c", draw9);
+$("c9").addEventListener("pointerdown", e => { const [x, y] = pickXY(e, S9.geo); if (inside(x, y)) { S9.pick = [x, y]; draw9(); } });
+$("s9bh").addEventListener("input", draw9b);
+[["b9bD", "das"], ["b9bC", "cr"], ["b9bI", "idas"]].forEach(([id, md], _, all) => $(id).addEventListener("click", () => { S9b.mode = md; all.forEach(([j]) => $(j).setAttribute("aria-pressed", j === id ? "true" : "false")); draw9b(); }));
+$("c9b").addEventListener("pointerdown", e => { const [x, y] = pickXY(e, S9b.geo); if (inside(x, y)) { S9b.pick = [x, y]; draw9b(); } });
+["s10a", "s10e"].forEach(id => $(id).addEventListener("input", draw10));
+["s11i", "s11m", "s11e"].forEach(id => $(id).addEventListener("input", draw11));
+
+function drawAll() { if (window.sarDrawAll) window.sarDrawAll(); draw1b(performance.now()); draw1(); draw2(); draw3(); draw4(); draw5(); draw6(); draw7(); draw9(); draw9b(); draw10(); draw11(); if (reduceMotion) draw0(performance.now()); }
+let rt = null; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(presentLayout, 150); });
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawAll);
+
+/* ---------- pager: one step per page ---------- */
+const PG = { pages: [], i: 0, all: false };
+function buildPager() {
+  const wrap = document.querySelector(".wrap"); wrap.classList.add("paged");
+  let pending = [];
+  for (const el of Array.from(wrap.children)) {
+    if (el.classList.contains("pager")) continue;
+    if (el.classList.contains("part")) { pending.push(el); continue; }
+    if (el.classList.contains("foot")) { PG.pages[PG.pages.length - 1].els.push(el); continue; }
+    const h = el.querySelector("h1, h2, h3"), no = el.querySelector(".step-no"), k = PG.pages.length + 1;
+    if (no) no.textContent = "Slide " + k;
+    const title = "Slide " + k + ": " + (h ? h.textContent.trim() : "Section");
+    PG.pages.push({ els: pending.concat([el]), title }); pending = [];
+  }
+  PG.pages.forEach((pg, i) => pg.els.forEach(e => e.setAttribute("data-page", i)));
+  $("pgSel").innerHTML = PG.pages.map((pg, i) => `<option value="${i}">${pg.title}</option>`).join("");
+  let start = 0;
+  const m = location.hash.match(/^#page-(\d+)$/); if (m) start = Math.min(PG.pages.length - 1, +m[1]);
+  else { try { const v = localStorage.getItem("das-explainer-page"); if (v !== null) start = Math.min(PG.pages.length - 1, +v || 0); } catch (e) {} }
+  showPage(start, true);
+}
+function showPage(i, first) {
+  PG.i = Math.max(0, Math.min(PG.pages.length - 1, i));
+  PG.pages.forEach((pg, j) => pg.els.forEach(e => { e.hidden = !PG.all && j !== PG.i; }));
+  $("pgSel").value = PG.i; $("pgSel").disabled = PG.all;
+  $("pgCount").textContent = PG.all ? "all steps" : (PG.i + 1) + " / " + PG.pages.length;
+  $("pgPrev").disabled = PG.all || PG.i === 0; $("pgNext").disabled = PG.all || PG.i === PG.pages.length - 1;
+  try { localStorage.setItem("das-explainer-page", PG.i); } catch (e) {}
+  if (!PG.all) history.replaceState(null, "", "#page-" + PG.i);
+  if (!first) { window.scrollTo({ top: 0 }); requestAnimationFrame(drawAll); }
+}
+$("pgPrev").addEventListener("click", () => showPage(PG.i - 1));
+$("pgNext").addEventListener("click", () => showPage(PG.i + 1));
+$("pgSel").addEventListener("change", e => showPage(+e.target.value));
+$("pgAll").addEventListener("click", () => { PG.all = !PG.all; $("pgAll").setAttribute("aria-pressed", PG.all); showPage(PG.i); });
+$("dsgrid").addEventListener("click", e => {
+  const b = e.target.closest("button[data-target]"); if (!b) return;
+  const h = document.getElementById(b.dataset.target); if (!h) return;
+  const sec = h.closest("section") || h;
+  if (PG.all) { sec.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+  const i = PG.pages.findIndex(pg => pg.els.some(el => el.contains(h)));
+  if (i >= 0) showPage(i);
+});
+// present mode: full screen, wider column, content scaled up, step bar hidden until the mouse moves
+function presentLayout() {
+  const w = $("pgPres").getAttribute("aria-pressed") === "true", wrap = document.querySelector(".wrap");
+  PZ.z = w ? Math.max(1, Math.min(1.3, window.innerHeight / 760, window.innerWidth / 1100)) : 1;
+  wrap.style.zoom = w ? PZ.z : ""; wrap.style.maxWidth = w ? Math.round(Math.min(0.92 * window.innerWidth, 1.5 * window.innerHeight) / PZ.z) + "px" : "";
+  renderTex(); drawAll();
+}
+function setPresent(on) {
+  document.body.classList.toggle("present", on); document.body.classList.remove("idle"); if (on) document.body.classList.add("idle");
+  $("pgPres").setAttribute("aria-pressed", on ? "true" : "false");
+  if (on) { if (PG.all) { PG.all = false; $("pgAll").setAttribute("aria-pressed", "false"); showPage(PG.i); } if (!document.fullscreenElement && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {}); }
+  else if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  presentLayout();
+}
+$("pgPres").addEventListener("click", () => setPresent($("pgPres").getAttribute("aria-pressed") !== "true"));
+document.addEventListener("fullscreenchange", () => { if (!document.fullscreenElement && document.body.classList.contains("present")) setPresent(false); else if (document.body.classList.contains("present")) presentLayout(); });
+// in present mode a click on empty space shows or hides the step bar; clicks on controls, plots and figures are left alone
+document.addEventListener("click", e => {
+  if (!document.body.classList.contains("present")) return;
+  if (e.target.closest("button, input, select, label, a, canvas, svg, img, .pager, .eq")) return;
+  document.body.classList.toggle("idle");
+});
+document.addEventListener("keydown", e => {
+  const tg = e.target; if (tg && (tg.tagName === "INPUT" || tg.tagName === "SELECT" || tg.tagName === "TEXTAREA")) return;
+  if ((e.key === "p" || e.key === "P") && !e.altKey && !e.ctrlKey && !e.metaKey) { e.preventDefault(); setPresent(!document.body.classList.contains("present")); }
+});
+document.addEventListener("keydown", e => {
+  if (PG.all || e.altKey || e.ctrlKey || e.metaKey) return;
+  const t = e.target; if (t && (t.tagName === "INPUT" || t.tagName === "SELECT" || t.tagName === "TEXTAREA")) return;
+  if (e.key === "ArrowRight" || e.key === "PageDown") { e.preventDefault(); showPage(PG.i + 1); }
+  else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); showPage(PG.i - 1); }
+});
+
+build8(); buildFlow(); buildPager(); drawAll();
+if (!reduceMotion) { requestAnimationFrame(draw0); requestAnimationFrame(loop1b); }
+window.addEventListener("load", renderTex);
+</script>
+<script>
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById("sar_" + id);
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function sinc(x) { if (Math.abs(x) < 1e-9) return 1; const p = Math.PI * x; return Math.sin(p) / p; }
+  // Three significant figures; trailing zeros are removed only after a decimal point.
+  function trim(str) { return str.includes(".") ? str.replace(/0+$/, "").replace(/\.$/, "") : str; }
+  function sig(v, n) { return trim(Number(v.toPrecision(n)).toString()); }
+  function fmtLen(m) {
+    const a = Math.abs(m);
+    if (a >= 1000) return sig(m / 1000, a >= 1e5 ? 4 : 3) + " km";
+    if (a >= 1) return sig(m, 3) + " m";
+    if (a >= 0.01) return sig(m * 100, 3) + " cm";
+    return sig(m * 1000, 3) + " mm";
+  }
+  function fmtAngle(rad) {
+    const deg = rad * 180 / Math.PI;
+    return deg >= 1 ? deg.toPrecision(3) + "°" : (rad * 1000).toPrecision(3) + " mrad";
+  }
+  function fit(canvas, aspect, maxH) {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = canvas.clientWidth || canvas.parentElement.clientWidth;
+    let h = Math.round(w * aspect);
+    if (maxH) h = Math.min(h, maxH);
+    canvas.style.height = h + "px";
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, w, h };
+  }
+  function arrowHead(ctx, x0, y0, x1, y1, color, size) {
+    const ang = Math.atan2(y1 - y0, x1 - x0);
+    ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(x1, y1);
+    ctx.lineTo(x1 - size * Math.cos(ang - 0.4), y1 - size * Math.sin(ang - 0.4));
+    ctx.lineTo(x1 - size * Math.cos(ang + 0.4), y1 - size * Math.sin(ang + 0.4));
+    ctx.closePath(); ctx.fill();
+  }
+
+  // ------------------------------------------------------------------ Hero: oblique 3D view
+  const hero = { u: -2.5, last: 0, playing: !reduceMotion };
+  const heroTargets = [[-4.0, 3.9], [-2.2, 5.4], [-0.6, 4.2], [1.2, 5.1], [2.8, 3.7], [4.3, 5.2]];
+  function drawHero() {
+    const cv = $("c0");
+    const { ctx, w, h } = fit(cv, 0.5, 470);
+    const ink = css("--ink"), muted = css("--muted"), line = css("--line"), acc = css("--accent"), acc2 = css("--accent-2"), fan = css("--fan");
+    ctx.clearRect(0, 0, w, h);
+    // projected extents: (x - y) in [-12.5, 7.2], (x + y) * 0.42 - z in [-6.9, 5.4]
+    const s = Math.min((w - 20) / (19.7 * 0.87), (h - 20) / 12.3);
+    const ox = 10 + 12.5 * 0.87 * s + Math.max(0, (w - 20 - 19.7 * 0.87 * s) / 2);
+    const oy = 10 + 6.9 * s;
+    const P = (x, y, z) => [ox + (x - y) * 0.87 * s, oy + (x + y) * 0.42 * s - z * s];
+    const poly = (pts, fill, stroke, lw) => {
+      ctx.beginPath(); pts.forEach((p, i) => { const q = P(...p); i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]); }); ctx.closePath();
+      if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+      if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lw || 1; ctx.stroke(); }
+    };
+    const seg = (a, b, color, lw, dash) => { const p = P(...a), q = P(...b); ctx.strokeStyle = color; ctx.lineWidth = lw || 1; ctx.setLineDash(dash || []); ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); ctx.stroke(); ctx.setLineDash([]); };
+    const label = (pt, txt, color, align, dx, dy, font) => { const p = P(...pt); ctx.font = font || ("13px " + css("--font-mono")); ctx.fillStyle = color; ctx.textAlign = align || "center"; ctx.fillText(txt, p[0] + (dx || 0), p[1] + (dy || 0)); };
+
+    const H = 4.6, yc = 4.6, a = 0.7, b = 2.1, u = hero.u;
+    // ground plane and ground track
+    poly([[-5.3, -0.6, 0], [5.3, -0.6, 0], [5.3, 7.4, 0], [-5.3, 7.4, 0]], null, line, 1);
+    seg([-5.3, 0, 0], [5.3, 0, 0], line, 1, [5, 5]);
+    // flight path
+    seg([-5.3, 0, H], [5.3, 0, H], muted, 1, [5, 5]);
+    // nadir
+    seg([u, 0, H - 0.3], [u, 0, 0], line, 1, [3, 4]);
+    // beam
+    const src = [u, 0.15, H - 0.08];
+    const pts = [];
+    for (let k = 0; k < 72; k++) { const t = (k / 72) * 2 * Math.PI; pts.push([u + a * Math.cos(t), yc + b * Math.sin(t), 0]); }
+    poly([src, [u + a, yc, 0], [u, yc + b, 0], [u - a, yc, 0], [u, yc - b, 0]], fan, null);
+    [[u + a, yc, 0], [u - a, yc, 0], [u, yc + b, 0], [u, yc - b, 0]].forEach((p) => seg(src, p, acc2, 1, [4, 4]));
+    poly(pts, fan, acc2, 1.6);
+    // targets
+    for (const [tx, ty] of heroTargets) {
+      const lit = ((tx - u) / a) ** 2 + ((ty - yc) / b) ** 2 <= 1;
+      const p = P(tx, ty, 0);
+      ctx.fillStyle = lit ? acc : muted;
+      ctx.beginPath(); ctx.arc(p[0], p[1], lit ? 5.5 : 4, 0, 2 * Math.PI); ctx.fill();
+    }
+    // antenna panel: long along x (D), short (W) tilted towards the ground patch
+    const Dh = 1.6, Wv = [0, 0.32, -0.45];
+    poly([[u - Dh, 0, H], [u + Dh, 0, H], [u + Dh + Wv[0], Wv[1], H + Wv[2]], [u - Dh + Wv[0], Wv[1], H + Wv[2]]], acc, acc, 1);
+    label([u, -0.05, H + 0.05], "D", acc, "center", 0, -9);
+    label([u - Dh, 0.16, H - 0.22], "W", acc, "right", -7, 5);
+    // flight arrow
+    const f0 = P(u + Dh + 0.5, -0.25, H + 0.3), f1 = P(u + Dh + 2.1, -0.25, H + 0.3);
+    ctx.strokeStyle = ink; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(f0[0], f0[1]); ctx.lineTo(f1[0], f1[1]); ctx.stroke();
+    arrowHead(ctx, f0[0], f0[1], f1[0], f1[1], ink, 9);
+    label([u + Dh + 1.3, -0.25, H + 0.3], "flight", ink, "center", 0, -9, "12px " + css("--font-body"));
+    // patch dimensions
+    seg([u - a, yc - b - 0.4, 0], [u + a, yc - b - 0.4, 0], ink, 1.3);
+    label([u + a, yc - b - 0.4, 0], "Rλ/D", ink, "left", 8, 2);
+    seg([u + a + 0.5, yc - b, 0], [u + a + 0.5, yc + b, 0], ink, 1.3);
+    label([u + a + 0.5, yc + 0.5, 0], "Rλ/W", ink, "left", 8, 4);
+    // range
+    seg(src, [u, yc, 0], muted, 1, [2, 3]);
+    label([u, yc * 0.5, H * 0.5], "R", muted, "left", 7, 0);
+  }
+
+  // ------------------------------------------------------------------ Step 1
+  const p1 = { lambda: 0.031, D: 3, R: 1e4, dx: 30 };
+  const logMap = (v, lo, hi) => lo * Math.pow(hi / lo, v / 1000);
+  const logInv = (x, lo, hi) => Math.round(1000 * Math.log(x / lo) / Math.log(hi / lo));
+  const RNG1 = { D: [0.1, 30], R: [100, 1e6], dx: [0.1, 1e4] };
+  function readP1() {
+    p1.D = logMap(+$("s1D").value, ...RNG1.D);
+    p1.R = logMap(+$("s1R").value, ...RNG1.R);
+    p1.dx = logMap(+$("s1x").value, ...RNG1.dx);
+  }
+  function setBand(lambda) {
+    p1.lambda = lambda;
+    [["b1L", 0.235], ["b1C", 0.056], ["b1X", 0.031]].forEach(([id, l]) => $(id).setAttribute("aria-pressed", String(l === lambda)));
+  }
+  function setP1(D, R, dx, lambda) {
+    $("s1D").value = logInv(D, ...RNG1.D);
+    $("s1R").value = logInv(R, ...RNG1.R);
+    $("s1x").value = logInv(dx, ...RNG1.dx);
+    if (lambda) setBand(lambda);
+    p1.D = D; p1.R = R; p1.dx = dx;
+    drawP1(); if (typeof drawP2 === "function") drawP2();
+  }
+  function drawP1() {
+    const { ctx, w, h } = fit($("c1"), 0.66, 560);
+    const ink = css("--ink"), muted = css("--muted"), line = css("--line"), acc = css("--accent"), acc2 = css("--accent-2"), fan = css("--fan");
+    ctx.clearRect(0, 0, w, h);
+    const { lambda, D, R, dx } = p1;
+    // Beam width at distance r: about D in the near field and r*lambda/D in the far field.
+    const beamW = (r) => Math.sqrt(D * D + Math.pow(r * lambda / D, 2));
+    const fp = beamW(R);
+    const rb = 2 * D * D / lambda;          // near-field / far-field boundary
+    // The view is three target separations wide, widened only when the footprint
+    // would not fit, so the whole beam stays in view. The targets therefore stay in
+    // place while the beam is narrower than about 2.5 separations.
+    const span = Math.max(3 * dx, 1.2 * fp);
+    const pad = 16, cx = w / 2;
+    const X = (x) => cx + (x / span) * (w - 2 * pad);
+    ctx.save(); ctx.beginPath(); ctx.rect(pad, 0, w - 2 * pad, h); ctx.clip();
+    const topY = 30, groundY = h * 0.55;
+    // vertical axis: distance from the antenna on a linear scale, from 0 to R
+    const rmin = 0;
+    const Yr = (r) => topY + (r / R) * (groundY - topY);
+    // near-field zone
+    if (rb > 0) {
+      ctx.fillStyle = css("--nf");
+      ctx.fillRect(pad, topY, w - 2 * pad, Yr(Math.min(rb, R)) - topY);
+    }
+    // beam envelope
+    const K = 120, left = [], right = [];
+    for (let k = 0; k <= K; k++) {
+      const r = R * k / K, hw = beamW(r) / 2;
+      left.push([X(-hw), Yr(r)]); right.push([X(hw), Yr(r)]);
+    }
+    ctx.fillStyle = fan; ctx.beginPath();
+    left.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+    for (let k = right.length - 1; k >= 0; k--) ctx.lineTo(right[k][0], right[k][1]);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = acc2; ctx.lineWidth = 1.2;
+    [left, right].forEach((side) => { ctx.beginPath(); side.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke(); });
+    // range ticks on the right at quarters of R
+    ctx.font = "11px " + css("--font-mono"); ctx.fillStyle = muted; ctx.textAlign = "right";
+    [0.25, 0.5, 0.75].forEach((q) => {
+      const y = Yr(q * R);
+      ctx.strokeStyle = line; ctx.beginPath(); ctx.moveTo(w - pad - 6, y); ctx.lineTo(w - pad, y); ctx.stroke();
+      ctx.fillText(fmtLen(q * R), w - pad - 9, y + 4);
+    });
+    // boundary and zone labels
+    ctx.font = "12px " + css("--font-mono"); ctx.textAlign = "left";
+    const nfLab = "2D²/λ = " + fmtLen(rb);
+    if (rb > rmin && rb < R) {
+      const yb = Yr(rb);
+      ctx.strokeStyle = acc; ctx.lineWidth = 1.2; ctx.setLineDash([6, 4]);
+      ctx.beginPath(); ctx.moveTo(pad, yb); ctx.lineTo(w - pad, yb); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = acc;
+      if (yb - topY > 22) { ctx.fillText("near field", pad + 4, yb - 7); ctx.fillText(nfLab, pad + 4, yb + 15); }
+      else ctx.fillText("near field above the dashed line, " + nfLab, pad + 4, yb + 15);
+      ctx.fillStyle = muted; ctx.fillText("far field", pad + 4, yb + 30);
+    } else if (rb >= R) {
+      ctx.fillStyle = acc; ctx.fillText("near field all the way to the ground", pad + 4, topY + 16);
+      ctx.fillText(nfLab, pad + 4, topY + 31);
+    } else {
+      ctx.fillStyle = muted; ctx.fillText("far field (" + nfLab + ")", pad + 4, topY + 16);
+    }
+    // antenna, drawn to the horizontal scale (at least 6 px)
+    const aw = Math.max(6, X(D / 2) - X(-D / 2));
+    ctx.fillStyle = acc; ctx.fillRect(cx - aw / 2, topY - 7, aw, 7);
+    ctx.fillStyle = ink; ctx.textAlign = "center";
+    ctx.fillText("D = " + fmtLen(D), cx, topY - 13);
+    ctx.strokeStyle = line; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad, groundY); ctx.lineTo(w - pad, groundY); ctx.stroke();
+    ctx.fillStyle = ink; ctx.textAlign = "right"; ctx.fillText("ground, R = " + fmtLen(R), w - pad, groundY - 8);
+    const x1 = -dx / 2, x2 = dx / 2;
+    [x1, x2].forEach((x) => { ctx.fillStyle = acc; ctx.beginPath(); ctx.arc(X(x), groundY, 5, 0, 2 * Math.PI); ctx.fill(); });
+    // separation marker above the targets
+    ctx.strokeStyle = muted; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(X(x1), groundY - 20); ctx.lineTo(X(x2), groundY - 20);
+    ctx.moveTo(X(x1), groundY - 24); ctx.lineTo(X(x1), groundY - 16); ctx.moveTo(X(x2), groundY - 24); ctx.lineTo(X(x2), groundY - 16); ctx.stroke();
+    ctx.fillStyle = muted; ctx.textAlign = "center"; ctx.fillText(fmtLen(dx), cx, groundY - 27);
+    const dimY = groundY + 16;
+    const wider = fp > span;
+    const e0 = wider ? pad : X(-fp / 2), e1 = wider ? w - pad : X(fp / 2);
+    ctx.strokeStyle = acc2; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(e0, dimY); ctx.lineTo(e1, dimY);
+    if (!wider) { ctx.moveTo(e0, dimY - 4); ctx.lineTo(e0, dimY + 4); ctx.moveTo(e1, dimY - 4); ctx.lineTo(e1, dimY + 4); }
+    ctx.stroke();
+    if (wider) { arrowHead(ctx, e0 + 10, dimY, e0, dimY, acc2, 7); arrowHead(ctx, e1 - 10, dimY, e1, dimY, acc2, 7); }
+    ctx.fillStyle = acc2; ctx.textAlign = "center";
+    ctx.fillText("footprint " + fmtLen(fp) + (wider ? ", wider than this view" : ""), cx, dimY + 15);
+    ctx.restore();
+    const plotTop = groundY + 52, plotBot = h - 22, N = 600;
+    const f1 = new Float64Array(N), f2 = new Float64Array(N), tot = new Float64Array(N);
+    let mx = 0;
+    for (let i = 0; i < N; i++) {
+      const x = (i / (N - 1) - 0.5) * span;
+      f1[i] = Math.pow(sinc((x - x1) / fp), 2);
+      f2[i] = Math.pow(sinc((x - x2) / fp), 2);
+      tot[i] = f1[i] + f2[i]; if (tot[i] > mx) mx = tot[i];
+    }
+    const Y = (v) => plotBot - (v / mx) * (plotBot - plotTop);
+    ctx.strokeStyle = line; ctx.beginPath(); ctx.moveTo(pad, plotBot); ctx.lineTo(w - pad, plotBot); ctx.stroke();
+    const path = (arr, color, lw) => {
+      ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.beginPath();
+      for (let i = 0; i < N; i++) { const x = (i / (N - 1) - 0.5) * span; i ? ctx.lineTo(X(x), Y(arr[i])) : ctx.moveTo(X(x), Y(arr[i])); }
+      ctx.stroke();
+    };
+    path(tot, acc, 2.2);
+    ctx.fillStyle = muted; ctx.textAlign = "left"; ctx.font = "12px " + css("--font-body");
+    ctx.fillText("combined echo from both targets across the ground", pad, plotTop - 8);
+    ctx.textAlign = "right"; ctx.font = "11px " + css("--font-mono");
+    ctx.fillText("width shown " + fmtLen(span), w - pad, plotBot + 15);
+    const mid = 2 * Math.pow(sinc(-x1 / fp), 2);
+    const resolved = mid < 0.8 * mx;
+    $("r1res").textContent = resolved ? "resolved" : "not resolved";
+    $("r1res").className = "chip " + (resolved ? "ok" : "no");
+    $("o1D").textContent = fmtLen(D); $("o1R").textContent = fmtLen(R); $("o1x").textContent = fmtLen(dx);
+    $("r1th").textContent = fmtAngle(lambda / D); $("r1fp").textContent = fmtLen(fp); $("r1need").textContent = fmtLen(R * lambda); $("r1nf").textContent = fmtLen(rb);
+  }
+  ["s1D", "s1R", "s1x"].forEach((id) => $(id).addEventListener("input", () => { readP1(); drawP1(); drawP2(); }));
+  $("b1L").addEventListener("click", () => { setBand(0.235); drawP1(); drawP2(); });
+  $("b1C").addEventListener("click", () => { setBand(0.056); drawP1(); drawP2(); });
+  $("b1X").addEventListener("click", () => { setBand(0.031); drawP1(); drawP2(); });
+  $("p1sat").addEventListener("click", () => setP1(10, 8e5, 1, 0.031));
+  $("p1far").addEventListener("click", () => setP1(10, 8e5, 4000, 0.031));
+
+  // ------------------------------------------------------------------ Steps 2 to 4
+  // These steps use the antenna, band, range and targets set in step 1.
+  const p2 = { frac: 0, playing: !reduceMotion };
+  const P2PAD = { l: 58, r: 14 };
+  function geom() {
+    const { lambda, D, R, dx } = p1;
+    const fp = Math.sqrt(D * D + Math.pow(R * lambda / D, 2));
+    const span = Math.max(3 * dx, 1.2 * fp);
+    const umin = -span / 2, umax = span / 2;
+    return { lambda, D, R, dx, fp, span, umin, umax, x1: -dx / 2, x2: dx / 2, u: umin + p2.frac * (umax - umin) };
+  }
+  const X2 = (x, w, g) => P2PAD.l + (x - g.umin) / (g.umax - g.umin) * (w - P2PAD.l - P2PAD.r);
+  const resp = (u, xk, g) => Math.pow(sinc((u - xk) / g.fp), 2);
+  const Rk = (u, xk, g) => Math.sqrt(g.R * g.R + (u - xk) * (u - xk)) - g.R;
+  function uAxis(ctx, w, h, g) {
+    ctx.fillStyle = css("--muted"); ctx.font = "11px " + css("--font-mono"); ctx.textAlign = "center";
+    [-0.5, -0.25, 0, 0.25, 0.5].forEach((q) => {
+      const x = q * g.span;
+      ctx.textAlign = q === -0.5 ? "left" : q === 0.5 ? "right" : "center";
+      ctx.fillText((x === 0 ? "0" : fmtLen(x)), X2(x, w, g), h - 6);
+    });
+    ctx.textAlign = "right"; ctx.fillText("antenna position u", w - P2PAD.r, h - 22);
+  }
+  // draw y(u) for u in [umin, umax]; pass 0 faint and complete, pass 1 coloured up to the antenna
+  function trace(ctx, w, g, f, Y, color, lw, upTo, faint) {
+    const N = 900;
+    ctx.beginPath();
+    for (let i = 0; i < N; i++) {
+      const x = g.umin + (i / (N - 1)) * (g.umax - g.umin);
+      if (upTo !== null && x > upTo) break;
+      const px = X2(x, w, g), py = Y(f(x));
+      i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+    }
+    ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.globalAlpha = faint ? 0.35 : 1; ctx.stroke(); ctx.globalAlpha = 1;
+  }
+
+  function drawP2geo() {
+    const { ctx, w, h } = fit($("c2a"), 0.62, 560);
+    const ink = css("--ink"), muted = css("--muted"), line = css("--line"), acc = css("--accent"), acc2 = css("--accent-2"), fan = css("--fan");
+    ctx.clearRect(0, 0, w, h);
+    const g = geom(), X = (x) => X2(x, w, g), u = g.u;
+    // geometry, top part
+    const trackY = 34, groundY = h * 0.36;
+    ctx.save(); ctx.beginPath(); ctx.rect(P2PAD.l, 0, w - P2PAD.l - P2PAD.r, groundY + 12); ctx.clip();
+    ctx.fillStyle = fan; ctx.beginPath();
+    const aw = Math.max(8, X(g.D / 2) - X(-g.D / 2));
+    ctx.moveTo(X(u) - aw / 2, trackY); ctx.lineTo(X(u) + aw / 2, trackY); ctx.lineTo(X(u + g.fp / 2), groundY); ctx.lineTo(X(u - g.fp / 2), groundY); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = line; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(P2PAD.l, trackY); ctx.lineTo(w - P2PAD.r, trackY); ctx.moveTo(P2PAD.l, groundY); ctx.lineTo(w - P2PAD.r, groundY); ctx.stroke();
+    ctx.font = "12px " + css("--font-body"); ctx.fillStyle = muted; ctx.textAlign = "left";
+    ctx.fillText("track", 6, trackY + 4); ctx.fillText("ground", 6, groundY + 4);
+    [["A", g.x1], ["B", g.x2]].forEach(([name, xk]) => {
+      const lit = Math.abs(u - xk) < g.fp / 2;
+      ctx.fillStyle = lit ? acc : muted; ctx.beginPath(); ctx.arc(X(xk), groundY, 6, 0, 2 * Math.PI); ctx.fill();
+      ctx.fillStyle = ink; ctx.textAlign = "center"; ctx.font = "12px " + css("--font-mono"); ctx.fillText(name, X(xk), groundY + 20);
+    });
+    ctx.fillStyle = acc; ctx.fillRect(X(u) - aw / 2, trackY - 6, aw, 7);
+    ctx.fillStyle = ink; ctx.font = "11px " + css("--font-mono"); ctx.textAlign = "center";
+    ctx.fillText("antenna, D = " + fmtLen(g.D), X(u), trackY - 12);
+
+    // response, bottom part
+    const pTop = groundY + 46, pBot = h - 34;
+    let mx = 0;
+    for (let i = 0; i <= 400; i++) { const x = g.umin + i / 400 * (g.umax - g.umin); mx = Math.max(mx, resp(x, g.x1, g) + resp(x, g.x2, g)); }
+    const Y = (v) => pBot - (v / mx) * (pBot - pTop);
+    ctx.strokeStyle = line; ctx.beginPath(); ctx.moveTo(P2PAD.l, pBot); ctx.lineTo(w - P2PAD.r, pBot); ctx.stroke();
+    ctx.fillStyle = muted; ctx.font = "12px " + css("--font-body"); ctx.textAlign = "left";
+    ctx.fillText("echo strength recorded at each antenna position", P2PAD.l, pTop - 12);
+    const fA = (x) => resp(x, g.x1, g), fB = (x) => resp(x, g.x2, g), fT = (x) => fA(x) + fB(x);
+    trace(ctx, w, g, fT, Y, line, 1.2, null, false);
+    trace(ctx, w, g, fA, Y, acc2, 1.2, u, false);
+    trace(ctx, w, g, fB, Y, acc2, 1.2, u, false);
+    trace(ctx, w, g, fT, Y, acc, 2.4, u, false);
+    ctx.fillStyle = acc; ctx.beginPath(); ctx.arc(X(u), Y(fT(u)), 5, 0, 2 * Math.PI); ctx.fill();
+    ctx.strokeStyle = acc2; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(X(u), trackY + 4); ctx.lineTo(X(u), pBot); ctx.stroke(); ctx.setLineDash([]);
+    // legend
+    ctx.font = "11px " + css("--font-body"); ctx.textAlign = "right";
+    ctx.fillStyle = acc2; ctx.fillText("target A, target B", w - P2PAD.r, pTop - 12);
+    ctx.fillStyle = acc; ctx.fillText("recorded sum", w - P2PAD.r, pTop + 2);
+    uAxis(ctx, w, h, g);
+  }
+
+  function drawP2hist() {
+    const { ctx, w, h } = fit($("c2b"), 0.3, 260);
+    const muted = css("--muted"), line = css("--line"), acc = css("--accent"), acc2 = css("--accent-2"), ink = css("--ink");
+    ctx.clearRect(0, 0, w, h);
+    const g = geom(), u = g.u;
+    const r0 = 14, r1 = h - 34;
+    const rmax = Math.max(Rk(g.umin, g.x2, g), Rk(g.umax, g.x1, g));
+    const Yr = (v) => r0 + (v / rmax) * (r1 - r0);
+    ctx.strokeStyle = line; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(P2PAD.l, r0); ctx.lineTo(P2PAD.l, r1); ctx.lineTo(w - P2PAD.r, r1); ctx.stroke();
+    ctx.fillStyle = muted; ctx.font = "11px " + css("--font-mono"); ctx.textAlign = "right";
+    ctx.fillText("0", P2PAD.l - 6, r0 + 4); ctx.fillText(fmtLen(rmax), P2PAD.l - 6, r1);
+    [["A", g.x1], ["B", g.x2]].forEach(([name, xk]) => {
+      const f = (x) => Rk(x, xk, g);
+      trace(ctx, w, g, f, Yr, line, 1.5, null, false);
+      // the part recorded while the target is in the beam, up to the current antenna position
+      const N = 900; ctx.beginPath(); let started = false;
+      for (let i = 0; i < N; i++) {
+        const x = g.umin + (i / (N - 1)) * (g.umax - g.umin);
+        if (x > u) break;
+        if (Math.abs(x - xk) >= g.fp / 2) { started = false; continue; }
+        const px = X2(x, w, g), py = Yr(f(x));
+        if (!started) { ctx.moveTo(px, py); started = true; } else ctx.lineTo(px, py);
+      }
+      ctx.strokeStyle = acc; ctx.lineWidth = 3; ctx.stroke();
+      ctx.fillStyle = ink; ctx.textAlign = "center"; ctx.font = "12px " + css("--font-mono"); ctx.fillText(name, X2(xk, w, g), r0 + 14);
+    });
+    ctx.strokeStyle = acc2; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(X2(u, w, g), r0); ctx.lineTo(X2(u, w, g), r1); ctx.stroke(); ctx.setLineDash([]);
+    ctx.save(); ctx.translate(12, (r0 + r1) / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = "center"; ctx.fillStyle = muted; ctx.font = "11px " + css("--font-mono"); ctx.fillText("R(u) − R", 0, 0); ctx.restore();
+    uAxis(ctx, w, h, g);
+  }
+
+  function drawP2phase() {
+    const { ctx, w, h } = fit($("c2c"), 0.3, 260);
+    const line = css("--line"), acc2 = css("--accent-2"), muted = css("--muted"), fan = css("--fan");
+    ctx.clearRect(0, 0, w, h);
+    const g = geom(), u = g.u;
+    const q0 = 12, q1 = h - 34, qm = (q0 + q1) / 2, amp = (q1 - q0) / 2 * 0.95;
+    ctx.strokeStyle = line; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(P2PAD.l, qm); ctx.lineTo(w - P2PAD.r, qm); ctx.moveTo(P2PAD.l, q0); ctx.lineTo(P2PAD.l, q1); ctx.stroke();
+    const xk = g.x1;
+    const cyclesView = 2 * Rk(g.umax, xk, g) / g.lambda;
+    const M = 3000;
+    if (cyclesView < M / 8) {
+      const f = (x) => resp(x, xk, g) * Math.cos(4 * Math.PI * Rk(x, xk, g) / g.lambda);
+      const Y = (v) => qm - v * amp;
+      trace(ctx, w, g, f, Y, line, 1, null, false);
+      ctx.beginPath();
+      for (let i = 0; i < M; i++) {
+        const x = g.umin + (i / (M - 1)) * (g.umax - g.umin);
+        if (x > u) break;
+        const px = X2(x, w, g), py = Y(f(x));
+        i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+      }
+      ctx.strokeStyle = acc2; ctx.lineWidth = 1.4; ctx.stroke();
+    } else {
+      // too many cycles to draw: show the envelope filled
+      ctx.fillStyle = fan; ctx.beginPath();
+      const N = 600, top = [], bot = [];
+      for (let i = 0; i < N; i++) { const x = g.umin + (i / (N - 1)) * (g.umax - g.umin); if (x > u) break; const e = resp(x, xk, g); top.push([X2(x, w, g), qm - e * amp]); bot.push([X2(x, w, g), qm + e * amp]); }
+      top.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+      for (let i = bot.length - 1; i >= 0; i--) ctx.lineTo(bot[i][0], bot[i][1]);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = muted; ctx.font = "12px " + css("--font-body"); ctx.textAlign = "center";
+      ctx.fillText("about " + Math.round(cyclesView).toLocaleString() + " cycles across this view: too many to draw, envelope shown", w / 2, q0 + 12);
+    }
+    ctx.save(); ctx.translate(12, qm); ctx.rotate(-Math.PI / 2); ctx.textAlign = "center"; ctx.fillStyle = muted; ctx.font = "11px " + css("--font-mono"); ctx.fillText("echo of A", 0, 0); ctx.restore();
+    uAxis(ctx, w, h, g);
+  }
+
+  function drawP2() {
+    drawP2geo();
+    const g = geom();
+    $("r2L").textContent = fmtLen(g.fp);
+    $("r2set").textContent = fmtLen(g.D) + ", " + fmtLen(g.lambda) + ", " + fmtLen(g.R);
+  }
+  $("b2play").addEventListener("click", () => { p2.playing = !p2.playing; $("b2play").textContent = p2.playing ? "Pause" : "Play"; });
+  $("b2step").addEventListener("click", () => { p2.frac = 0; drawP2(); });
+  if (!p2.playing) { $("b2play").textContent = "Play"; p2.frac = 0.62; }
+
+  // ------------------------------------------------------------------ animation and start-up
+  let last = 0;
+  const vis = { c0: true, c2a: true, c2b: true, c2c: true };
+  function tick(t) {
+    const dt = last ? Math.min(0.05, (t - last) / 1000) : 0; last = t;
+    if (hero.playing) { hero.u += dt * 0.8; if (hero.u > 4.2) hero.u = -4.2; if (vis.c0) drawHero(); }
+    if (p2.playing) { p2.frac += dt / 8; if (p2.frac > 1) p2.frac = 0; if (vis.c2a || vis.c2b || vis.c2c) drawP2(); }
+    requestAnimationFrame(tick);
+  }
+  function drawAll() { drawHero(); drawP1(); drawP2(); }
+  window.sarDrawAll = drawAll;
+  setP1(3, 1e4, 30, 0.031);
+  drawAll();
+  requestAnimationFrame(tick);
+  let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  const mq = window.matchMedia("(prefers-color-scheme: dark)");
+  if (mq.addEventListener) mq.addEventListener("change", drawAll);
+  new MutationObserver(drawAll).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  if ("IntersectionObserver" in window) {
+    const io = new IntersectionObserver((es) => es.forEach((e) => { vis[e.target.id] = e.isIntersecting; }));
+    ["c0", "c2a"].forEach((id) => io.observe($(id)));
+  }
+})();
+</script>
+</body>
+</html>
